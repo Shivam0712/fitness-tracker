@@ -1,0 +1,126 @@
+// modules/views/home.js
+import { openNumberPad } from '../numberPad.js';
+import { renderFallbackAvatar } from '../thumbnail.js';
+import { esc } from '../ui.js';
+
+/** Sum of counts for the active commitment window (or all-time if no commitment). */
+export function commitmentProgress(activity, logs) {
+  const c = activity.commitment;
+  const actLogs = logs.filter(l => l.activityId === activity.id);
+  if (!c) {
+    const total = actLogs.reduce((s, l) => s + Number(l.count), 0);
+    return { total, distinctDays: distinctDays(actLogs), commitment: null };
+  }
+  const since = new Date(c.startedAt);
+  const windowed = actLogs.filter(l => new Date(l.timestamp) >= since);
+  const total = windowed.reduce((s, l) => s + Number(l.count), 0);
+  return { total, distinctDays: distinctDays(windowed), commitment: c };
+}
+
+function distinctDays(logs) {
+  const set = new Set(logs.map(l => {
+    const d = new Date(l.timestamp);
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  }));
+  return set.size;
+}
+
+/** Days elapsed since startedAt (inclusive of today), min 1 if any time has passed. */
+function daysElapsed(startedAt) {
+  const start = new Date(startedAt); start.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.max(0, Math.round((today - start) / 86400000)) + 1;
+}
+
+/** Build the progress sub-DOM string for a tile, by commitment type. */
+function progressMarkup(activity, logs) {
+  const { total, distinctDays: dd, commitment: c } = commitmentProgress(activity, logs);
+  const unit = esc(activity.unit);
+  if (!c) {
+    return `<div class="tile-progress-line"><span class="tile-big">${total}</span> <span class="tile-unit">${unit}</span>
+            <span class="tile-sub">no active commitment</span></div>`;
+  }
+  if (c.type === 'open') {
+    return `<div class="tile-progress-line"><span class="tile-big">${total}</span> <span class="tile-unit">${unit}</span></div>`;
+  }
+  if (c.type === 'x_only') {
+    const pct = Math.min(100, Math.round(total / c.targetCount * 100));
+    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit}`);
+  }
+  if (c.type === 'x_in_y') {
+    const pct = Math.min(100, Math.round(total / c.targetCount * 100));
+    const remaining = Math.max(0, c.targetDays - daysElapsed(c.startedAt) + 1);
+    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit} · ${remaining}d left`);
+  }
+  if (c.type === 'y_days') {
+    const el = Math.min(c.targetDays, daysElapsed(c.startedAt));
+    const pct = Math.min(100, Math.round(dd / c.targetDays * 100));
+    return bar(activity.color, pct, `${dd} / ${c.targetDays} days · ${total} ${unit} total`);
+  }
+  return '';
+}
+
+function bar(color, pct, label) {
+  return `
+    <div class="tile-bar"><div class="tile-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <div class="tile-sub">${esc(label)}</div>`;
+}
+
+/**
+ * render(container, state, callbacks)
+ * callbacks: { onLog(activityId, count), onOpenActivity(activityId), onCreate() }
+ */
+export function render(container, state, callbacks) {
+  const activities = state.activities.filter(a => !a.deleted);
+
+  if (activities.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">＋</div>
+        <p class="empty-copy">No activities yet.<br>Tap + to start.</p>
+        <button class="btn btn--primary btn--pill" id="empty-create">Create activity</button>
+      </div>
+      <button class="fab" id="fab-create" aria-label="Create activity">＋</button>`;
+    container.querySelector('#empty-create').onclick = callbacks.onCreate;
+    container.querySelector('#fab-create').onclick = callbacks.onCreate;
+    return;
+  }
+
+  container.innerHTML = `
+    <header class="view-head"><h1 class="view-title">Today</h1></header>
+    <div class="tiles">
+      ${activities.map(a => tileMarkup(a, state.logs)).join('')}
+    </div>
+    <button class="fab" id="fab-create" aria-label="Create activity">＋</button>`;
+
+  container.querySelector('#fab-create').onclick = callbacks.onCreate;
+
+  activities.forEach(a => {
+    const tile = container.querySelector(`[data-tile="${a.id}"]`);
+    tile.querySelector('.tile-main').onclick = () => callbacks.onOpenActivity(a.id);
+    tile.querySelector('.tile-log').onclick = (e) => {
+      e.stopPropagation();
+      openNumberPad({
+        title: a.name, unit: a.unit,
+        onSave: (count) => callbacks.onLog(a.id, count),
+      });
+    };
+  });
+}
+
+function tileMarkup(a, logs) {
+  const avatar = a.thumbnail
+    ? `<img class="tile-avatar" src="${a.thumbnail}" alt="">`
+    : `<img class="tile-avatar" src="${renderFallbackAvatar(a.name, a.color, 96)}" alt="">`;
+  return `
+    <article class="tile" data-tile="${a.id}" style="--accent:${a.color}">
+      <div class="tile-main">
+        ${avatar}
+        <div class="tile-info">
+          <h2 class="tile-name">${esc(a.name)}</h2>
+          ${progressMarkup(a, logs)}
+        </div>
+      </div>
+      <button class="tile-log" aria-label="Log ${esc(a.name)}">＋</button>
+    </article>`;
+}

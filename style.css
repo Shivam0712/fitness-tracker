@@ -191,3 +191,48 @@ img { display: block; max-width: 100%; }
 .numpad-key--ghost { background: transparent; color: var(--text-2); }
 .numpad-save { width: 100%; }
 .numpad-save.is-disabled { opacity: 0.4; pointer-events: none; }
+
+/* ===== VIEW HEAD / EMPTY / FAB (shared) (TASK 10) ===== */
+.view-head { margin-bottom: var(--sp-4); }
+.view-title { font-size: var(--fs-34); font-weight: 700; letter-spacing: -0.02em; }
+
+.empty { text-align: center; padding: var(--sp-16) var(--sp-4); display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); }
+.empty-icon { font-size: 48px; color: var(--text-2); }
+.empty-copy { color: var(--text-2); font-size: var(--fs-17); }
+
+.fab {
+  position: fixed; right: var(--sp-4); z-index: 40;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--sp-4));
+  width: 56px; height: 56px; border-radius: var(--r-pill);
+  background: var(--text); color: var(--bg); font-size: 28px; line-height: 1;
+  box-shadow: var(--shadow-float);
+  transition: transform 120ms var(--ease);
+}
+.fab:active { transform: scale(0.92); }
+
+/* ===== TILES (TASK 10) ===== */
+.tiles { display: flex; flex-direction: column; gap: var(--sp-3); }
+.tile {
+  position: relative; background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-card); padding: var(--sp-4);
+  border-left: 4px solid var(--accent);
+}
+.tile-main { display: flex; gap: var(--sp-4); align-items: center; }
+.tile-avatar { width: 56px; height: 56px; border-radius: var(--r-btn); object-fit: cover; flex: 0 0 auto; }
+.tile-info { flex: 1; min-width: 0; }
+.tile-name { font-size: var(--fs-17); font-weight: 600; margin-bottom: var(--sp-2); }
+.tile-progress-line { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.tile-big { font-size: var(--fs-22); font-weight: 700; }
+.tile-unit { font-size: var(--fs-13); color: var(--text-2); }
+.tile-sub { font-size: var(--fs-13); color: var(--text-2); margin-top: var(--sp-1); }
+.tile-bar { height: 6px; border-radius: var(--r-pill); background: var(--border); overflow: hidden; margin-top: var(--sp-2); }
+.tile-bar-fill { height: 100%; border-radius: var(--r-pill); transition: width var(--dur) var(--ease); }
+.tile-log {
+  position: absolute; right: var(--sp-4); bottom: var(--sp-4);
+  width: 44px; height: 44px; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 24px; line-height: 1;
+  display: grid; place-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: transform 120ms var(--ease);
+}
+.tile-log:active { transform: scale(0.9); }
