@@ -48,9 +48,19 @@
     --nav-blur-bg:  rgba(14,14,12,0.72);
   }
 }
-/* Manual override hooks (set on <html> by app.js when settings.darkModeOverride != null) */
-html[data-theme="light"] { color-scheme: light; }
-html[data-theme="dark"]  { color-scheme: dark; }
+/* Manual override hooks — force CSS variables AND color-scheme */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg:           #FAFAF7; --surface: #FFFFFF; --text: #1A1A1A; --text-2: #6B6B68;
+  --border:       rgba(0,0,0,0.06); --hairline: rgba(0,0,0,0.10);
+  --shadow-float: 0 4px 24px rgba(0,0,0,0.08); --nav-blur-bg: rgba(250,250,247,0.72);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:           #0E0E0C; --surface: #1A1A18; --text: #F5F5F2; --text-2: #9B9B98;
+  --border:       rgba(255,255,255,0.08); --hairline: rgba(255,255,255,0.12);
+  --shadow-float: 0 4px 24px rgba(0,0,0,0.40); --nav-blur-bg: rgba(14,14,12,0.72);
+}
 
 /* =========================================================
    Section 2: RESET + LAYOUT  (TASK 1)
@@ -349,3 +359,9 @@ img { display: block; max-width: 100%; }
 .rl-row td .is-deleted { font-style: italic; color: var(--text-2); }
 .rl-empty { text-align: center; color: var(--text-2); padding: var(--sp-8) 0; }
 .rl-row .cal-dot { margin-right: 6px; vertical-align: middle; }
+
+/* ===== POLISH (TASK 16) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+.cal-empty-hint { text-align: center; color: var(--text-2); font-size: var(--fs-15); padding: var(--sp-6) 0; }

@@ -64,6 +64,9 @@ function rerender() {
 
   // wire log rows (edit) if on log seg
   if (_seg === 'log') wireLogRows(a, state);
+  // wire reset button (lives on progress seg) regardless
+  const resetBtn = panelEl.querySelector('#reset-btn');
+  if (resetBtn) resetBtn.onclick = () => { _cb.onResetCommitment(a.id); setTimeout(rerender, 50); };
 }
 
 function renderSeg(a, state) {
@@ -166,8 +169,6 @@ function renderLog(a, state) {
 function wireLogRows(a, state) {
   panelEl.querySelectorAll('.log-row').forEach(row =>
     row.onclick = () => openEditLog(row.dataset.log, a));
-  const resetBtn = panelEl.querySelector('#reset-btn');
-  if (resetBtn) resetBtn.onclick = () => { _cb.onResetCommitment(a.id); setTimeout(rerender, 50); };
 }
 
 /* ---------- edit-log modal ---------- */

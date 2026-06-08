@@ -36,6 +36,7 @@ export function render(container, state, callbacks) {
         <span class="cal-num">${d}</span><span class="cal-dots">${dots}${more}</span></button>`;
   }
 
+  const noEntries = byDay.size === 0;
   container.innerHTML = `
     <header class="view-head cal-head">
       <button class="cal-nav" data-nav="-1" aria-label="Previous month">‹</button>
@@ -43,7 +44,8 @@ export function render(container, state, callbacks) {
       <button class="cal-nav" data-nav="1" aria-label="Next month">›</button>
     </header>
     <div class="cal-grid cal-dow-row">${dowRow}</div>
-    <div class="cal-grid">${cells}</div>`;
+    <div class="cal-grid">${cells}</div>
+    ${noEntries ? `<p class="cal-empty-hint">No entries this month.</p>` : ''}`;
 
   container.querySelectorAll('.cal-nav').forEach(b => b.onclick = () => {
     _month = new Date(y, m + Number(b.dataset.nav), 1); render(container, state, callbacks);
