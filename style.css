@@ -236,3 +236,23 @@ img { display: block; max-width: 100%; }
   transition: transform 120ms var(--ease);
 }
 .tile-log:active { transform: scale(0.9); }
+
+/* ===== FORMS (TASK 11) ===== */
+.form { display: flex; flex-direction: column; gap: var(--sp-4); }
+.field { display: flex; flex-direction: column; gap: var(--sp-2); }
+.field-label { font-size: var(--fs-13); font-weight: 500; color: var(--text-2); }
+.field-input {
+  height: 48px; border-radius: var(--r-btn); border: 1px solid var(--hairline);
+  background: var(--bg); color: var(--text); padding: 0 var(--sp-3); font-size: var(--fs-17);
+}
+.field-input:focus { outline: none; border-color: var(--text-2); }
+.field-file { font-size: var(--fs-15); }
+.form-preview { width: 72px; height: 72px; border-radius: var(--r-btn); object-fit: cover; margin-top: var(--sp-2); }
+
+.seg { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.seg-btn {
+  flex: 1 1 auto; min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--r-btn);
+  background: var(--border); color: var(--text-2); font-size: var(--fs-13); font-weight: 600;
+  transition: background 120ms var(--ease), color 120ms var(--ease);
+}
+.seg-btn.is-active { background: var(--text); color: var(--bg); }
