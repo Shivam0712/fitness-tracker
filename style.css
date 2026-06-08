@@ -169,3 +169,25 @@ img { display: block; max-width: 100%; }
 }
 .modal-card.is-in { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 .modal-title { font-size: var(--fs-22); font-weight: 600; margin-bottom: var(--sp-4); }
+
+/* ===== NUMBER PAD (TASK 6) ===== */
+.numpad-head { text-align: center; margin-bottom: var(--sp-3); }
+.numpad-title { font-size: var(--fs-15); font-weight: 500; color: var(--text-2); }
+.numpad-display {
+  text-align: center; margin-bottom: var(--sp-6);
+  display: flex; align-items: baseline; justify-content: center; gap: var(--sp-2);
+}
+.numpad-value { font-size: var(--fs-34); font-weight: 700; line-height: 1; }
+.numpad-unit  { font-size: var(--fs-17); color: var(--text-2); }
+.numpad-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-6);
+}
+.numpad-key {
+  height: 64px; border-radius: var(--r-btn); background: var(--border);
+  font-size: var(--fs-22); font-weight: 600;
+  transition: transform 80ms var(--ease), background 120ms var(--ease);
+}
+.numpad-key:active { transform: scale(0.94); background: var(--hairline); }
+.numpad-key--ghost { background: transparent; color: var(--text-2); }
+.numpad-save { width: 100%; }
+.numpad-save.is-disabled { opacity: 0.4; pointer-events: none; }
