@@ -1,0 +1,174 @@
+{
+  "common": "_common.md",
+  "tasks": {
+    "task-01": {
+      "num": 1,
+      "slug": "scaffold",
+      "deps": [],
+      "file": "task-01-scaffold.md"
+    },
+    "task-02": {
+      "num": 2,
+      "slug": "uuid-store",
+      "deps": [
+        1
+      ],
+      "file": "task-02-uuid-store.md"
+    },
+    "task-03": {
+      "num": 3,
+      "slug": "streak",
+      "deps": [
+        2
+      ],
+      "file": "task-03-streak.md"
+    },
+    "task-04": {
+      "num": 4,
+      "slug": "accomplishments",
+      "deps": [
+        2,
+        3
+      ],
+      "file": "task-04-accomplishments.md"
+    },
+    "task-05": {
+      "num": 5,
+      "slug": "ui",
+      "deps": [
+        1
+      ],
+      "file": "task-05-ui.md"
+    },
+    "task-06": {
+      "num": 6,
+      "slug": "numberpad",
+      "deps": [
+        5
+      ],
+      "file": "task-06-numberpad.md"
+    },
+    "task-07": {
+      "num": 7,
+      "slug": "thumbnail",
+      "deps": [
+        2
+      ],
+      "file": "task-07-thumbnail.md"
+    },
+    "task-08": {
+      "num": 8,
+      "slug": "confetti",
+      "deps": [
+        5
+      ],
+      "file": "task-08-confetti.md"
+    },
+    "task-09": {
+      "num": 9,
+      "slug": "sync",
+      "deps": [
+        2
+      ],
+      "file": "task-09-sync.md"
+    },
+    "task-10": {
+      "num": 10,
+      "slug": "home",
+      "deps": [
+        2,
+        4,
+        6,
+        7,
+        8
+      ],
+      "file": "task-10-home.md"
+    },
+    "task-11": {
+      "num": 11,
+      "slug": "app",
+      "deps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "file": "task-11-app.md"
+    },
+    "task-12": {
+      "num": 12,
+      "slug": "activity-detail",
+      "deps": [
+        3,
+        5,
+        6,
+        10,
+        11
+      ],
+      "file": "task-12-activity-detail.md"
+    },
+    "task-13": {
+      "num": 13,
+      "slug": "calendar",
+      "deps": [
+        5,
+        11
+      ],
+      "file": "task-13-calendar.md"
+    },
+    "task-14": {
+      "num": 14,
+      "slug": "accomplishments-view",
+      "deps": [
+        4,
+        11
+      ],
+      "file": "task-14-accomplishments-view.md"
+    },
+    "task-15": {
+      "num": 15,
+      "slug": "rawlog",
+      "deps": [
+        11,
+        12
+      ],
+      "file": "task-15-rawlog.md"
+    },
+    "task-16": {
+      "num": 16,
+      "slug": "polish",
+      "deps": [
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "file": "task-16-polish.md"
+    },
+    "task-17": {
+      "num": 17,
+      "slug": "seed",
+      "deps": [
+        2,
+        11
+      ],
+      "file": "task-17-seed.md"
+    },
+    "task-18": {
+      "num": 18,
+      "slug": "readme",
+      "deps": [
+        16,
+        17
+      ],
+      "file": "task-18-readme.md"
+    }
+  }
+}
