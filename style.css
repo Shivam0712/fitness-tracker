@@ -298,3 +298,54 @@ img { display: block; max-width: 100%; }
 .log-count { font-weight: 600; font-size: var(--fs-15); }
 .log-cum { color: var(--text-2); text-align: right; }
 .detail-log-fab { position: fixed; }
+
+/* ===== CALENDAR (TASK 13) ===== */
+.cal-head { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
+.cal-title { font-size: var(--fs-22); font-weight: 600; text-align: center; }
+.cal-nav { font-size: 24px; min-height: 44px; color: var(--text-2); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow-row { margin-bottom: var(--sp-2); }
+.cal-dow { text-align: center; font-size: 11px; color: var(--text-2); font-weight: 500; }
+.cal-day {
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 4px; padding-top: 6px; border-radius: 10px; background: transparent;
+}
+.cal-day--empty { visibility: hidden; }
+.cal-day[disabled] { opacity: 0.5; }
+.cal-num { font-size: var(--fs-13); }
+.cal-day--today .cal-num { background: var(--text); color: var(--bg); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; }
+.cal-dots { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.cal-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.cal-more { font-size: 9px; color: var(--text-2); }
+.day-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.day-row { display: grid; grid-template-columns: 12px 1fr auto; gap: var(--sp-3); align-items: center; padding: var(--sp-2) 0; }
+.day-name.is-deleted { font-style: italic; color: var(--text-2); }
+.day-count { font-weight: 600; }
+
+/* ===== ACCOMPLISHMENTS (TASK 14) ===== */
+.acc-head { display: flex; align-items: center; justify-content: space-between; }
+.acc-gear { font-size: 22px; min-height: 44px; min-width: 44px; }
+.acc-section { margin-bottom: var(--sp-6); }
+.acc-h { font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); margin-bottom: var(--sp-3); }
+.acc-list { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+.acc-row { display: grid; grid-template-columns: 12px 1fr auto; gap: var(--sp-3); align-items: center; padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--hairline); }
+.acc-row:last-child { border-bottom: none; }
+.acc-name.is-deleted { font-style: italic; color: var(--text-2); }
+.acc-val { font-weight: 600; font-size: var(--fs-15); }
+.acc-empty { color: var(--text-2); font-size: var(--fs-15); padding: var(--sp-2) 0; }
+
+/* ===== RAW LOG (TASK 15) ===== */
+.chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-pill);
+  background: var(--border); color: var(--text-2); font-size: var(--fs-13); font-weight: 500; min-height: 36px; }
+.chip.is-on { background: var(--text); color: var(--bg); }
+.chip.is-on .cal-dot { box-shadow: 0 0 0 2px var(--bg); }
+.rl-table { width: 100%; border-collapse: collapse; font-size: var(--fs-15); }
+.rl-table th { text-align: left; font-size: var(--fs-13); color: var(--text-2); font-weight: 500; padding: var(--sp-2); border-bottom: 1px solid var(--hairline); }
+.rl-row td { padding: var(--sp-3) var(--sp-2); border-bottom: 1px solid var(--hairline); vertical-align: top; }
+.rl-time { color: var(--text-2); font-size: var(--fs-13); }
+.rl-count { font-weight: 600; }
+.rl-unit { color: var(--text-2); }
+.rl-row td .is-deleted { font-style: italic; color: var(--text-2); }
+.rl-empty { text-align: center; color: var(--text-2); padding: var(--sp-8) 0; }
+.rl-row .cal-dot { margin-right: 6px; vertical-align: middle; }
