@@ -1,2 +1,78 @@
-// modules/accomplishments.js — temporary stub (Task 4 replaces this)
-export function recalculate(s) { return s; }
+// modules/accomplishments.js
+import { calcStreakStats, localDayKey } from './streak.js';
+
+/**
+ * recalculate(state) -> new state with state.accomplishments rebuilt:
+ *   - keeps every existing target_achieved (durable, event-based)
+ *   - regenerates longest_streak / daily_max / overall_max per activity
+ */
+export function recalculate(state) {
+  const next = { ...state };
+  const logs = state.logs || [];
+
+  // 1. keep durable target_achieved records as-is
+  const durable = (state.accomplishments || []).filter(a => a.type === 'target_achieved');
+
+  const derived = [];
+
+  for (const act of state.activities) {
+    const actLogs = logs.filter(l => l.activityId === act.id);
+    if (actLogs.length === 0) continue;
+
+    // --- overall_max: single highest entry count ---
+    const overallMax = Math.max(...actLogs.map(l => Number(l.count)));
+    derived.push({
+      id: `derived_overallmax_${act.id}`, type: 'overall_max',
+      activityId: act.id, value: overallMax, achievedAt: null, meta: {},
+    });
+
+    // --- daily_max: highest single-day sum ---
+    const perDay = new Map();
+    for (const l of actLogs) {
+      const k = localDayKey(l.timestamp);
+      perDay.set(k, (perDay.get(k) || 0) + Number(l.count));
+    }
+    const dailyMax = Math.max(...perDay.values());
+    derived.push({
+      id: `derived_dailymax_${act.id}`, type: 'daily_max',
+      activityId: act.id, value: dailyMax, achievedAt: null, meta: {},
+    });
+
+    // --- longest_streak ---
+    const ss = calcStreakStats(act.id, act.streakMinimum || 0, actLogs);
+    if (ss.longest > 0) {
+      derived.push({
+        id: `derived_longest_${act.id}`, type: 'longest_streak',
+        activityId: act.id, value: ss.longest, achievedAt: null,
+        meta: { lastPerformed: ss.lastPerformed },
+      });
+    }
+  }
+
+  next.accomplishments = [...durable, ...derived];
+  return next;
+}
+
+/**
+ * Helper for the confetti/target flow: should we fire & persist a target_achieved?
+ * Fires only when:
+ *   - commitment exists, is x_in_y or x_only (has targetCount)
+ *   - totalDone >= targetCount
+ *   - commitment.completedAt === null
+ *   - no existing target_achieved already references this commitment.startedAt
+ */
+export function shouldFireTarget(state, activity) {
+  const c = activity.commitment;
+  if (!c || c.completedAt !== null) return false;
+  if (c.targetCount == null) return false;
+  const totalDone = state.logs
+    .filter(l => l.activityId === activity.id && new Date(l.timestamp) >= new Date(c.startedAt))
+    .reduce((sum, l) => sum + Number(l.count), 0);
+  if (totalDone < c.targetCount) return false;
+  const already = (state.accomplishments || []).some(
+    a => a.type === 'target_achieved' &&
+         a.activityId === activity.id &&
+         a.meta && a.meta.commitmentStartedAt === c.startedAt
+  );
+  return !already;
+}
