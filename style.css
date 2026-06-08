@@ -104,3 +104,68 @@ img { display: block; max-width: 100%; }
 
 /* component CSS appended below by later tasks ↓↓↓ */
 /* === APPEND-POINT === */
+
+/* ===== UI PRIMITIVES (TASK 5) ===== */
+.overlay-host { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+.overlay-host[aria-hidden="false"] { pointer-events: auto; }
+
+/* toasts */
+#toast-host {
+  position: fixed; left: 0; right: 0; bottom: calc(var(--nav-height) + var(--safe-bottom) + 12px);
+  z-index: 200; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+}
+.toast {
+  pointer-events: auto; max-width: 90%; padding: 12px 18px; border-radius: var(--r-pill);
+  background: var(--text); color: var(--bg); font-size: var(--fs-15); font-weight: 500;
+  box-shadow: var(--shadow-float); opacity: 0; transform: translateY(8px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.toast.is-in { opacity: 1; transform: translateY(0); }
+.toast--error { background: #B3261E; color: #fff; }
+.toast--success { background: #2E7D5B; color: #fff; }
+
+/* sheet */
+.sheet-backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.32);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity var(--dur) var(--ease);
+}
+.sheet-backdrop.is-in { opacity: 1; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: var(--sp-6) var(--sp-4) calc(var(--sp-6) + var(--safe-bottom));
+  box-shadow: var(--shadow-float);
+  transform: translateY(100%); transition: transform var(--dur) var(--ease);
+  max-height: 90vh; overflow-y: auto;
+}
+.sheet.is-in { transform: translateY(0); }
+
+/* confirm */
+.confirm-title { font-size: var(--fs-22); font-weight: 600; margin-bottom: var(--sp-2); }
+.confirm-msg   { color: var(--text-2); font-size: var(--fs-15); margin-bottom: var(--sp-6); }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+
+/* buttons */
+.btn { min-height: 48px; border-radius: var(--r-btn); font-size: var(--fs-17); font-weight: 600; padding: 0 var(--sp-4); }
+.btn--primary { background: var(--text); color: var(--bg); }
+.btn--ghost   { background: var(--border); color: var(--text); }
+.btn--danger  { background: #B3261E; color: #fff; }
+.btn--pill    { border-radius: var(--r-pill); }
+
+/* modal */
+.modal-backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.32);
+  opacity: 0; transition: opacity var(--dur) var(--ease);
+}
+.modal-backdrop.is-in { opacity: 1; }
+.modal-card {
+  position: absolute; left: 50%; top: 50%;
+  width: min(92%, 420px); max-height: 86vh; overflow-y: auto;
+  background: var(--surface); border-radius: var(--r-card); padding: var(--sp-6);
+  box-shadow: var(--shadow-float);
+  transform: translate(-50%, -48%) scale(0.96); opacity: 0;
+  transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.modal-card.is-in { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+.modal-title { font-size: var(--fs-22); font-weight: 600; margin-bottom: var(--sp-4); }
