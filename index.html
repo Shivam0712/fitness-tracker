@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#FAFAF7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0E0E0C" media="(prefers-color-scheme: dark)" />
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Fitness" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <title>Fitness Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== App root ===== -->
+  <div id="app">
+    <!-- View containers. Home visible by default; others hidden. -->
+    <main id="view-root">
+      <section id="view-home"            class="view"></section>
+      <section id="view-calendar"        class="view hidden"></section>
+      <section id="view-accomplishments" class="view hidden"></section>
+      <section id="view-rawlog"          class="view hidden"></section>
+    </main>
+
+    <!-- ===== Bottom navigation ===== -->
+    <nav id="bottom-nav" aria-label="Primary">
+      <button class="nav-btn is-active" data-view="home" aria-label="Home">
+        <span class="nav-icon">⌂</span><span class="nav-label">Home</span>
+      </button>
+      <button class="nav-btn" data-view="calendar" aria-label="Calendar">
+        <span class="nav-icon">▦</span><span class="nav-label">Calendar</span>
+      </button>
+      <button class="nav-btn" data-view="accomplishments" aria-label="Wins">
+        <span class="nav-icon">★</span><span class="nav-label">Wins</span>
+      </button>
+      <button class="nav-btn" data-view="rawlog" aria-label="Log">
+        <span class="nav-icon">≣</span><span class="nav-label">Log</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===== Overlay hosts (filled by ui.js / numberPad.js) ===== -->
+  <div id="sheet-host"   class="overlay-host" aria-hidden="true"></div>
+  <div id="modal-host"   class="overlay-host" aria-hidden="true"></div>
+  <div id="toast-host"   aria-live="polite"></div>
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

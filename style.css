@@ -1,0 +1,106 @@
+/* =========================================================
+   FITNESS TRACKER — style.css
+   Section 1: TOKENS  (TASK 1)
+   ========================================================= */
+:root {
+  /* chrome colors — light */
+  --bg:            #FAFAF7;
+  --surface:       #FFFFFF;
+  --text:          #1A1A1A;
+  --text-2:        #6B6B68;
+  --border:        rgba(0,0,0,0.06);
+  --hairline:      rgba(0,0,0,0.10);
+  --shadow-float:  0 4px 24px rgba(0,0,0,0.08);
+  --nav-blur-bg:   rgba(250,250,247,0.72);
+
+  /* spacing scale — use ONLY these */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-6: 24px; --sp-8: 32px; --sp-12: 48px; --sp-16: 64px;
+
+  /* radii */
+  --r-card: 16px; --r-btn: 12px; --r-pill: 999px;
+
+  /* type scale */
+  --fs-13: 13px; --fs-15: 15px; --fs-17: 17px; --fs-22: 22px; --fs-34: 34px;
+
+  /* motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur:  240ms;
+
+  /* safe areas */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --nav-height: 60px;
+
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           #0E0E0C;
+    --surface:      #1A1A18;
+    --text:         #F5F5F2;
+    --text-2:       #9B9B98;
+    --border:       rgba(255,255,255,0.08);
+    --hairline:     rgba(255,255,255,0.12);
+    --shadow-float: 0 4px 24px rgba(0,0,0,0.40);
+    --nav-blur-bg:  rgba(14,14,12,0.72);
+  }
+}
+/* Manual override hooks (set on <html> by app.js when settings.darkModeOverride != null) */
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="dark"]  { color-scheme: dark; }
+
+/* =========================================================
+   Section 2: RESET + LAYOUT  (TASK 1)
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-17);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+img { display: block; max-width: 100%; }
+
+#app { min-height: 100%; display: flex; flex-direction: column; }
+
+#view-root {
+  flex: 1;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--sp-4));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.view { padding: var(--sp-4); max-width: 480px; margin: 0 auto; }
+.hidden { display: none !important; }
+
+/* =========================================================
+   Section 3: BOTTOM NAV  (TASK 1)
+   ========================================================= */
+#bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--nav-blur-bg);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: 1px solid var(--hairline);
+}
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; min-height: 44px; color: var(--text-2);
+  transition: color var(--dur) var(--ease);
+}
+.nav-btn.is-active { color: var(--text); }
+.nav-icon  { font-size: 20px; line-height: 1; }
+.nav-label { font-size: 11px; font-weight: 500; }
+
+/* component CSS appended below by later tasks ↓↓↓ */
+/* === APPEND-POINT === */
