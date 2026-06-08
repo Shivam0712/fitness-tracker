@@ -12,15 +12,15 @@ export async function syncNow(state, url) {
     exportedAt: new Date().toISOString(),
   };
   try {
-    const res = await fetch(url, {
+    await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
-      redirect: 'follow',
+      mode: 'no-cors',
     });
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.message || 'Network error' };
   }
 }
+

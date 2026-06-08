@@ -1,8 +1,9 @@
 // modules/views/activityDetail.js
 import { esc, showConfirm, showModal, showToast } from '../ui.js';
 import { calcStreakStats, localDayKey } from '../streak.js';
-import { commitmentProgress } from './home.js';
+import { commitmentProgress, daysUntil } from './home.js';
 import { openNumberPad } from '../numberPad.js';
+import { resizeImage } from '../thumbnail.js';
 
 let panelEl = null;
 let backdropEl = null;
@@ -91,6 +92,11 @@ function renderProgress(a, state) {
   let pct, line, rem = '';
   if (c.type === 'x_only') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`; }
   else if (c.type === 'x_in_y') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
+  else if (c.type === 'x_before_z') {
+    pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`;
+    const due = new Date(c.targetDate + 'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    rem = `due ${due} · ${daysUntil(c.targetDate)}d left`;
+  }
   else /* y_days */ { pct = Math.min(100, Math.round(distinctDays/c.targetDays*100)); line = `${distinctDays} / ${c.targetDays} days · ${total} ${unit} total`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
 
   return `
@@ -221,19 +227,34 @@ function openKebab(a) {
 }
 
 function openEditActivity(a) {
+  let newThumbnail = null;
   const node = document.createElement('div'); node.className = 'form';
+  const hasThumb = !!a.thumbnail;
   node.innerHTML = `
     <label class="field"><span class="field-label">Name</span><input class="field-input" id="ea-name" value="${esc(a.name)}"></label>
     <label class="field"><span class="field-label">Unit</span><input class="field-input" id="ea-unit" value="${esc(a.unit)}"></label>
     <label class="field"><span class="field-label">Streak minimum</span><input class="field-input" id="ea-min" inputmode="numeric" value="${a.streakMinimum||0}"></label>
+    <div class="field"><span class="field-label">Thumbnail</span>
+      <input type="file" accept="image/*" id="ea-img" class="field-file">
+      <img id="ea-preview" class="form-preview ${hasThumb?'':'hidden'}" src="${hasThumb?esc(a.thumbnail):''}" alt="" referrerpolicy="no-referrer"></div>
     <button class="btn btn--primary" id="ea-save">Save</button>`;
   const { close } = showModal(node, { title: 'Edit activity' });
-  node.querySelector('#ea-save').onclick = () => {
-    _cb.onEditActivity(a.id, {
+  node.querySelector('#ea-img').onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      newThumbnail = await resizeImage(file);
+      const prev = node.querySelector('#ea-preview');
+      prev.src = newThumbnail; prev.classList.remove('hidden');
+    } catch { showToast('Could not process image', { type: 'error' }); }
+  };
+  node.querySelector('#ea-save').onclick = async () => {
+    const patch = {
       name: node.querySelector('#ea-name').value.trim(),
       unit: node.querySelector('#ea-unit').value.trim(),
       streakMinimum: node.querySelector('#ea-min').value,
-    });
+    };
+    if (newThumbnail) patch.thumbnail = newThumbnail;
+    _cb.onEditActivity(a.id, patch);
     close(); rerender();
   };
 }
@@ -242,24 +263,32 @@ function openSetCommitment(a) {
   const node = document.createElement('div'); node.className = 'form';
   node.innerHTML = `
     <div class="seg" id="sc-type">
-      <button type="button" data-t="x_in_y" class="seg-btn is-active">X in Y</button>
-      <button type="button" data-t="x_only" class="seg-btn">X reps</button>
-      <button type="button" data-t="y_days" class="seg-btn">Y days</button>
-      <button type="button" data-t="open"   class="seg-btn">Open</button>
+      <button type="button" data-t="x_in_y"     class="seg-btn is-active">X in Y</button>
+      <button type="button" data-t="x_only"     class="seg-btn">X reps</button>
+      <button type="button" data-t="x_before_z" class="seg-btn">X by Date</button>
+      <button type="button" data-t="y_days"     class="seg-btn">Y days</button>
+      <button type="button" data-t="open"       class="seg-btn">Open</button>
     </div>
     <label class="field" id="sc-wc"><span class="field-label">Target count</span><input class="field-input" id="sc-count" inputmode="numeric"></label>
     <label class="field" id="sc-wd"><span class="field-label">Target days</span><input class="field-input" id="sc-days" inputmode="numeric"></label>
+    <label class="field" id="sc-wz"><span class="field-label">Target date</span><input class="field-input" id="sc-date" type="date"></label>
     <button class="btn btn--primary" id="sc-save">Set commitment</button>`;
   const { close } = showModal(node, { title: 'New commitment' });
   let type = 'x_in_y';
-  const wc = node.querySelector('#sc-wc'), wd = node.querySelector('#sc-wd');
-  const sync = () => { wc.classList.toggle('hidden', !(type==='x_in_y'||type==='x_only')); wd.classList.toggle('hidden', !(type==='x_in_y'||type==='y_days')); };
+  const wc = node.querySelector('#sc-wc'), wd = node.querySelector('#sc-wd'), wz = node.querySelector('#sc-wz');
+  const sync = () => {
+    wc.classList.toggle('hidden', !(type==='x_in_y'||type==='x_only'||type==='x_before_z'));
+    wd.classList.toggle('hidden', !(type==='x_in_y'||type==='y_days'));
+    wz.classList.toggle('hidden', type !== 'x_before_z');
+  };
   node.querySelectorAll('#sc-type .seg-btn').forEach(b => b.onclick = () => {
     node.querySelectorAll('#sc-type .seg-btn').forEach(x=>x.classList.remove('is-active')); b.classList.add('is-active'); type=b.dataset.t; sync();
   });
   sync();
   node.querySelector('#sc-save').onclick = () => {
-    _cb.onSetCommitment(a.id, { type, targetCount: node.querySelector('#sc-count').value, targetDays: node.querySelector('#sc-days').value });
+    const targetDate = node.querySelector('#sc-date').value || null;
+    if (type === 'x_before_z' && !targetDate) { showToast('Target date required', {type:'error'}); return; }
+    _cb.onSetCommitment(a.id, { type, targetCount: node.querySelector('#sc-count').value, targetDays: node.querySelector('#sc-days').value, targetDate });
     close(); rerender();
   };
 }

@@ -32,6 +32,13 @@ function daysElapsed(startedAt) {
   return Math.max(0, Math.round((today - start) / 86400000)) + 1;
 }
 
+/** Days remaining until a YYYY-MM-DD date string (local calendar days, min 0). */
+export function daysUntil(dateStr) {
+  const target = new Date(dateStr + 'T00:00:00'); target.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.max(0, Math.round((target - today) / 86400000));
+}
+
 /** Build the progress sub-DOM string for a tile, by commitment type. */
 function progressMarkup(activity, logs) {
   const { total, distinctDays: dd, commitment: c } = commitmentProgress(activity, logs);
@@ -56,6 +63,11 @@ function progressMarkup(activity, logs) {
     const el = Math.min(c.targetDays, daysElapsed(c.startedAt));
     const pct = Math.min(100, Math.round(dd / c.targetDays * 100));
     return bar(activity.color, pct, `${dd} / ${c.targetDays} days · ${total} ${unit} total`);
+  }
+  if (c.type === 'x_before_z') {
+    const pct = Math.min(100, Math.round(total / c.targetCount * 100));
+    const remaining = daysUntil(c.targetDate);
+    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit} · ${remaining}d left`);
   }
   return '';
 }

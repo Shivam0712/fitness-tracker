@@ -145,16 +145,19 @@ function openCreateActivity() {
       <input class="field-input" id="f-unit" placeholder="reps, min, km" autocomplete="off"></label>
     <div class="field"><span class="field-label">Commitment type</span>
       <div class="seg" id="f-type">
-        <button type="button" data-t="x_in_y" class="seg-btn is-active">X in Y days</button>
-        <button type="button" data-t="x_only" class="seg-btn">X reps</button>
-        <button type="button" data-t="y_days" class="seg-btn">Y days</button>
-        <button type="button" data-t="open"   class="seg-btn">Open</button>
+        <button type="button" data-t="x_in_y"     class="seg-btn is-active">X in Y days</button>
+        <button type="button" data-t="x_only"     class="seg-btn">X reps</button>
+        <button type="button" data-t="x_before_z" class="seg-btn">X by Date</button>
+        <button type="button" data-t="y_days"     class="seg-btn">Y days</button>
+        <button type="button" data-t="open"       class="seg-btn">Open</button>
       </div>
     </div>
     <label class="field" id="wrap-count"><span class="field-label">Target count</span>
       <input class="field-input" id="f-count" inputmode="numeric" placeholder="200"></label>
     <label class="field" id="wrap-days"><span class="field-label">Target days</span>
       <input class="field-input" id="f-days" inputmode="numeric" placeholder="20"></label>
+    <label class="field" id="wrap-date"><span class="field-label">Target date</span>
+      <input class="field-input" id="f-date" type="date"></label>
     <label class="field"><span class="field-label">Streak minimum (optional)</span>
       <input class="field-input" id="f-min" inputmode="numeric" placeholder="0"></label>
     <div class="field"><span class="field-label">Thumbnail (optional)</span>
@@ -167,9 +170,11 @@ function openCreateActivity() {
   let type = 'x_in_y';
   const wrapCount = node.querySelector('#wrap-count');
   const wrapDays  = node.querySelector('#wrap-days');
+  const wrapDate  = node.querySelector('#wrap-date');
   function syncFields() {
-    wrapCount.classList.toggle('hidden', !(type === 'x_in_y' || type === 'x_only'));
+    wrapCount.classList.toggle('hidden', !(type === 'x_in_y' || type === 'x_only' || type === 'x_before_z'));
     wrapDays.classList.toggle('hidden',  !(type === 'x_in_y' || type === 'y_days'));
+    wrapDate.classList.toggle('hidden',  type !== 'x_before_z');
   }
   node.querySelectorAll('#f-type .seg-btn').forEach(b => b.onclick = () => {
     node.querySelectorAll('#f-type .seg-btn').forEach(x => x.classList.remove('is-active'));
@@ -186,18 +191,20 @@ function openCreateActivity() {
     } catch { showToast('Could not process image', { type: 'error' }); }
   };
 
-  node.querySelector('#f-save').onclick = () => {
+  node.querySelector('#f-save').onclick = async () => {
     const name = node.querySelector('#f-name').value.trim();
     if (!name) { showToast('Name required', { type: 'error' }); return; }
     const cfg = {
       name, unit: node.querySelector('#f-unit').value.trim(), type,
       targetCount: node.querySelector('#f-count').value,
       targetDays: node.querySelector('#f-days').value,
+      targetDate: node.querySelector('#f-date').value || null,
       streakMinimum: node.querySelector('#f-min').value,
       thumbnail,
     };
-    if ((type === 'x_in_y' || type === 'x_only') && !(Number(cfg.targetCount) > 0)) { showToast('Target count required', { type:'error' }); return; }
+    if ((type === 'x_in_y' || type === 'x_only' || type === 'x_before_z') && !(Number(cfg.targetCount) > 0)) { showToast('Target count required', { type:'error' }); return; }
     if ((type === 'x_in_y' || type === 'y_days') && !(Number(cfg.targetDays) > 0)) { showToast('Target days required', { type:'error' }); return; }
+    if (type === 'x_before_z' && !cfg.targetDate) { showToast('Target date required', { type:'error' }); return; }
     state = store.createActivity(state, cfg);
     close(); setView('home'); showToast('Activity created ✓', { type: 'success' });
   };

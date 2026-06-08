@@ -67,11 +67,12 @@ export function nextColor(state) {
 }
 
 /* ---------- Commitment factory ---------- */
-function makeCommitment(type, targetCount, targetDays) {
+function makeCommitment(type, targetCount, targetDays, targetDate) {
   return {
     type,
-    targetCount: (type === 'x_in_y' || type === 'x_only') ? Number(targetCount) : null,
-    targetDays:  (type === 'x_in_y' || type === 'y_days')  ? Number(targetDays)  : null,
+    targetCount: (type === 'x_in_y' || type === 'x_only' || type === 'x_before_z') ? Number(targetCount) : null,
+    targetDays:  (type === 'x_in_y' || type === 'y_days') ? Number(targetDays) : null,
+    targetDate:  type === 'x_before_z' ? (targetDate || null) : null,
     startedAt: nowISO(),
     completedAt: null,
   };
@@ -81,7 +82,7 @@ function makeCommitment(type, targetCount, targetDays) {
    MUTATORS — each clones, mutates, (recalcs), writes, returns
    ============================================================ */
 
-export function createActivity(state, { name, unit, type, targetCount, targetDays, streakMinimum, thumbnail }) {
+export function createActivity(state, { name, unit, type, targetCount, targetDays, targetDate, streakMinimum, thumbnail }) {
   const s = clone(state);
   const activity = {
     id: uuid(),
@@ -93,8 +94,8 @@ export function createActivity(state, { name, unit, type, targetCount, targetDay
     deleted: false,
     streakMinimum: Number(streakMinimum) || 0,
     commitment: type === 'open'
-      ? makeCommitment('open', null, null)
-      : makeCommitment(type, targetCount, targetDays),
+      ? makeCommitment('open', null, null, null)
+      : makeCommitment(type, targetCount, targetDays, targetDate),
     archivedCommitments: [],
   };
   s.activities.push(activity);
@@ -120,13 +121,13 @@ export function deleteActivity(state, id) {
   return setState(recalculate(s));
 }
 
-export function setCommitment(state, id, { type, targetCount, targetDays }) {
+export function setCommitment(state, id, { type, targetCount, targetDays, targetDate }) {
   const s = clone(state);
   const a = s.activities.find(x => x.id === id);
   if (!a) return state;
   a.commitment = type === 'open'
-    ? makeCommitment('open', null, null)
-    : makeCommitment(type, targetCount, targetDays);
+    ? makeCommitment('open', null, null, null)
+    : makeCommitment(type, targetCount, targetDays, targetDate);
   return setState(recalculate(s));
 }
 
