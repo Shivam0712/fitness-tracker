@@ -78,12 +78,16 @@ function bar(color, pct, label) {
     <div class="tile-sub">${esc(label)}</div>`;
 }
 
+let _showArchived = false;
+
 /**
  * render(container, state, callbacks)
  * callbacks: { onLog(activityId, count), onOpenActivity(activityId), onCreate() }
  */
 export function render(container, state, callbacks) {
-  const activities = state.activities.filter(a => !a.deleted);
+  const activities = state.activities.filter(a => !a.deleted && !a.archived);
+  const archived = state.activities.filter(a => !a.deleted && a.archived);
+  const archivedSection = archivedSectionMarkup(archived);
 
   if (activities.length === 0) {
     container.innerHTML = `
@@ -92,9 +96,11 @@ export function render(container, state, callbacks) {
         <p class="empty-copy">No activities yet.<br>Tap + to start.</p>
         <button class="btn btn--primary btn--pill" id="empty-create">Create activity</button>
       </div>
-      <button class="fab" id="fab-create" aria-label="Create activity">＋</button>`;
+      <button class="fab" id="fab-create" aria-label="Create activity">＋</button>
+      ${archivedSection}`;
     container.querySelector('#empty-create').onclick = callbacks.onCreate;
     container.querySelector('#fab-create').onclick = callbacks.onCreate;
+    wireArchivedSection(container, state, callbacks);
     return;
   }
 
@@ -103,6 +109,7 @@ export function render(container, state, callbacks) {
     <div class="tiles">
       ${activities.map(a => tileMarkup(a, state.logs)).join('')}
     </div>
+    ${archivedSection}
     <button class="fab" id="fab-create" aria-label="Create activity">＋</button>`;
 
   container.querySelector('#fab-create').onclick = callbacks.onCreate;
@@ -118,6 +125,40 @@ export function render(container, state, callbacks) {
       });
     };
   });
+
+  wireArchivedSection(container, state, callbacks);
+}
+
+function archivedSectionMarkup(archived) {
+  if (archived.length === 0) return '';
+  const list = _showArchived
+    ? `<div class="archived-list">${archived.map(archivedRowMarkup).join('')}</div>`
+    : '';
+  return `
+    <button class="archived-toggle" id="archived-toggle">
+      ${_showArchived ? '▾' : '▸'} Show archived (${archived.length})
+    </button>
+    ${list}`;
+}
+
+function archivedRowMarkup(a) {
+  const avatar = a.thumbnail
+    ? `<img class="archived-avatar" src="${a.thumbnail}" alt="">`
+    : `<img class="archived-avatar" src="${renderFallbackAvatar(a.name, a.color, 64)}" alt="">`;
+  return `
+    <div class="archived-row" data-archived="${a.id}">
+      ${avatar}
+      <span class="archived-name">${esc(a.name)}</span>
+      <button class="btn btn--ghost archived-restore" data-restore="${a.id}">Restore</button>
+    </div>`;
+}
+
+function wireArchivedSection(container, state, callbacks) {
+  const toggle = container.querySelector('#archived-toggle');
+  if (!toggle) return;
+  toggle.onclick = () => { _showArchived = !_showArchived; render(container, state, callbacks); };
+  container.querySelectorAll('[data-restore]').forEach(btn =>
+    btn.onclick = (e) => { e.stopPropagation(); callbacks.onUnarchiveActivity(btn.dataset.restore); });
 }
 
 function tileMarkup(a, logs) {

@@ -65,22 +65,35 @@ const callbacks = {
   onDeleteActivity: async (activityId) => {
     if (await showConfirm({ title: 'Delete activity?', message: 'Logs stay in your history.', confirmLabel: 'Delete' })) {
       state = store.deleteActivity(state, activityId); setView('home'); showToast('Activity deleted');
+      return true;
     }
+    return false;
   },
-  onResetCommitment: async (activityId) => {
-    if (await showConfirm({ title: 'Reset commitment?', message: 'Archives the current commitment.', confirmLabel: 'Reset', danger: false })) {
+  onArchiveProgress: async (activityId) => {
+    if (await showConfirm({ title: 'Archive progress?', message: 'Saves this run to Past runs and resets the counter.', confirmLabel: 'Archive', danger: false })) {
       const act = store.getActivity(state, activityId);
-      // ensure a target_achieved exists for the run being archived (spec 4.5)
+      // only record a Win if the target was actually met (spec: not every archive is a win)
       if (act && act.commitment) {
         const c = act.commitment;
         const done = state.logs.filter(l => l.activityId === activityId && new Date(l.timestamp) >= new Date(c.startedAt))
                                .reduce((s,l)=>s+Number(l.count),0);
+        const targetMet = c.targetCount != null && done >= c.targetCount;
         const exists = state.accomplishments.some(a => a.type==='target_achieved' && a.activityId===activityId && a.meta?.commitmentStartedAt===c.startedAt);
-        if (!exists) state = store.addTargetAchieved(state, activityId, done, { commitmentStartedAt: c.startedAt, targetDays: c.targetDays });
+        if (targetMet && !exists) state = store.addTargetAchieved(state, activityId, done, { commitmentStartedAt: c.startedAt, targetDays: c.targetDays });
       }
-      state = store.resetCommitment(state, activityId);
-      refresh(); showToast('Commitment reset ✓', { type:'success' });
+      state = store.archiveProgress(state, activityId);
+      refresh(); showToast('Progress archived ✓', { type:'success' });
     }
+  },
+  onArchiveActivity: async (activityId) => {
+    if (await showConfirm({ title: 'Archive activity?', message: 'Hides it from Home. You can restore it anytime from the archived list.', confirmLabel: 'Archive', danger: false })) {
+      state = store.archiveActivity(state, activityId); setView('home'); showToast('Activity archived ✓', { type: 'success' });
+      return true;
+    }
+    return false;
+  },
+  onUnarchiveActivity: (activityId) => {
+    state = store.unarchiveActivity(state, activityId); refresh(); showToast('Activity restored ✓', { type: 'success' });
   },
   onSetCommitment: (activityId, cfg) => { state = store.setCommitment(state, activityId, cfg); refresh(); },
   onEditActivity: (activityId, patch) => { state = store.editActivity(state, activityId, patch); refresh(); },
@@ -126,11 +139,11 @@ function showTargetModal(activity) {
       Target hit! ${activity.commitment.targetCount} ${esc(activity.unit)}</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <button class="btn btn--ghost" data-act="later">Later</button>
-      <button class="btn btn--primary" data-act="reset">Reset</button>
+      <button class="btn btn--primary" data-act="archive">Archive</button>
     </div>`;
   const { close } = showModal(node, { title: 'Nice work' });
   node.querySelector('[data-act="later"]').onclick = close;
-  node.querySelector('[data-act="reset"]').onclick = () => { close(); callbacks.onResetCommitment(activity.id); };
+  node.querySelector('[data-act="archive"]').onclick = () => { close(); callbacks.onArchiveProgress(activity.id); };
 }
 
 /* ---------- create activity modal ---------- */
@@ -237,6 +250,11 @@ function openSettings() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <button class="btn btn--ghost" id="s-save">Save</button>
       <button class="btn btn--primary" id="s-sync">Sync now</button>
+    </div>
+    <p class="field-label" style="margin-top:20px">Data backup</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button class="btn btn--ghost" id="s-export">Export / Backup</button>
+      <button class="btn btn--ghost" id="s-import">Import / Restore</button>
     </div>`;
   const { close } = showModal(node, { title: 'Settings' });
   const o = state.settings.darkModeOverride;
@@ -258,6 +276,107 @@ function openSettings() {
     close(); applyTheme(); showToast('Settings saved ✓', { type:'success' });
   };
   node.querySelector('#s-sync').onclick = () => { close(); doSync(); };
+  node.querySelector('#s-export').onclick = () => { close(); openExportModal(); };
+  node.querySelector('#s-import').onclick = () => { close(); openImportModal(); };
+}
+
+/* ---------- export / import (backup) ---------- */
+function buildExportEnvelope() {
+  return {
+    app: 'fitness_tracker',
+    formatVersion: 1,
+    schemaVersion: state.schemaVersion || 1,
+    exportedAt: new Date().toISOString(),
+    data: state,
+  };
+}
+
+function openExportModal() {
+  const json = JSON.stringify(buildExportEnvelope(), null, 2);
+  const node = document.createElement('div');
+  node.className = 'form';
+  node.innerHTML = `
+    <p class="field-label">Includes all activities, logs, wins and images. Save it somewhere safe.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button class="btn btn--ghost" id="ex-copy">Copy to clipboard</button>
+      <button class="btn btn--primary" id="ex-download">Download</button>
+    </div>`;
+  showModal(node, { title: 'Export backup' });
+
+  node.querySelector('#ex-copy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(json);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = json; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    showToast('Backup copied ✓', { type: 'success' });
+  };
+  node.querySelector('#ex-download').onclick = () => {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url; a.download = `fitness-tracker-backup-${d}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Backup downloaded ✓', { type: 'success' });
+  };
+}
+
+function openImportModal() {
+  const node = document.createElement('div');
+  node.className = 'form';
+  node.innerHTML = `
+    <p class="field-label">Choose a backup JSON file. This replaces all current data on this device.</p>
+    <input type="file" accept="application/json,.json" id="im-file" class="field-file">
+    <button class="btn btn--danger" id="im-restore" disabled>Restore</button>`;
+  const { close } = showModal(node, { title: 'Import backup' });
+
+  let pickedText = null;
+  node.querySelector('#im-file').onchange = async (e) => {
+    const file = e.target.files[0];
+    pickedText = file ? await file.text() : null;
+    node.querySelector('#im-restore').disabled = !pickedText;
+  };
+
+  node.querySelector('#im-restore').onclick = async () => {
+    if (!pickedText) return;
+    // close the import modal first — sheet (confirm) and modal hosts share a z-index,
+    // so a modal left open paints over a confirm sheet triggered from within it
+    // (same convention as the kebab menu's archive/delete handlers).
+    close();
+
+    let parsed;
+    try { parsed = JSON.parse(pickedText); }
+    catch { showToast('Not valid JSON', { type: 'error' }); return; }
+
+    if (parsed.app && parsed.app !== 'fitness_tracker') {
+      showToast('This file is not a Fitness Tracker backup', { type: 'error' }); return;
+    }
+    const data = parsed.data ?? parsed;
+    if (!data || !Array.isArray(data.activities) || !Array.isArray(data.logs)) {
+      showToast('Backup is missing or malformed', { type: 'error' }); return;
+    }
+
+    const ok = await showConfirm({
+      title: 'Replace all data?',
+      message: 'This overwrites your current activities, logs and wins with the backup.',
+      confirmLabel: 'Replace', danger: true,
+    });
+    if (!ok) return;
+
+    const clean = store.sanitizeState(data);
+    try {
+      state = store.importState(clean);
+    } catch {
+      showToast('Backup too large to store on this device', { type: 'error' });
+      return;
+    }
+    setView('home'); showToast('Backup restored ✓', { type: 'success' });
+  };
 }
 
 /* ---------- boot ---------- */

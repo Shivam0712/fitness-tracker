@@ -22,7 +22,7 @@ export function nowISO() {
 }
 
 /* ---------- Empty / default state ---------- */
-function emptyState() {
+export function emptyState() {
   return {
     schemaVersion: 1,
     activities: [],
@@ -58,12 +58,12 @@ export function getActivity(state, id) {
   return state.activities.find(a => a.id === id) || null;
 }
 
-/** Next unused palette color. Counts only non-deleted activities; deleted frees its slot. */
+/** Next unused palette color. Counts only active (non-deleted, non-archived) activities; deleted/archived frees its slot. */
 export function nextColor(state) {
-  const used = new Set(state.activities.filter(a => !a.deleted).map(a => a.color));
+  const active = state.activities.filter(a => !a.deleted && !a.archived);
+  const used = new Set(active.map(a => a.color));
   for (const c of PALETTE) if (!used.has(c)) return c;
-  const n = state.activities.filter(a => !a.deleted).length;
-  return PALETTE[n % PALETTE.length];
+  return PALETTE[active.length % PALETTE.length];
 }
 
 /* ---------- Commitment factory ---------- */
@@ -92,6 +92,7 @@ export function createActivity(state, { name, unit, type, targetCount, targetDay
     thumbnail: thumbnail || null,
     createdAt: nowISO(),
     deleted: false,
+    archived: false,
     streakMinimum: Number(streakMinimum) || 0,
     commitment: type === 'open'
       ? makeCommitment('open', null, null, null)
@@ -143,6 +144,44 @@ export function resetCommitment(state, id) {
   return setState(recalculate(s));
 }
 
+/**
+ * Archive current progress: snapshot the commitment run (with the achieved total)
+ * into archivedCommitments, then clear commitment to null so the counter resets.
+ */
+export function archiveProgress(state, id) {
+  const s = clone(state);
+  const a = s.activities.find(x => x.id === id);
+  if (!a || !a.commitment) return state;
+  const c = a.commitment;
+  const since = new Date(c.startedAt);
+  const achievedTotal = s.logs
+    .filter(l => l.activityId === id && new Date(l.timestamp) >= since)
+    .reduce((sum, l) => sum + Number(l.count), 0);
+  const now = nowISO();
+  a.archivedCommitments = a.archivedCommitments || [];
+  a.archivedCommitments.push({ ...c, completedAt: now, achievedTotal, archivedAt: now });
+  a.commitment = null;
+  return setState(recalculate(s));
+}
+
+/** Archive an activity: hides it from Home, keeps it (and its history) intact and reversible. */
+export function archiveActivity(state, id) {
+  const s = clone(state);
+  const a = s.activities.find(x => x.id === id);
+  if (!a) return state;
+  a.archived = true;
+  return setState(recalculate(s));
+}
+
+/** Restore a previously archived activity so it shows on Home again. */
+export function unarchiveActivity(state, id) {
+  const s = clone(state);
+  const a = s.activities.find(x => x.id === id);
+  if (!a) return state;
+  a.archived = false;
+  return setState(recalculate(s));
+}
+
 export function addLog(state, activityId, count) {
   const s = clone(state);
   s.logs.push({ id: uuid(), activityId, count: Number(count), timestamp: nowISO() });
@@ -178,4 +217,17 @@ export function updateSettings(state, patch) {
   const s = clone(state);
   s.settings = { ...s.settings, ...patch };
   return setState(s);
+}
+
+/* ---------- Export / Import ---------- */
+
+/** Backfill missing top-level keys/settings the same way getState() does, for imported data. */
+export function sanitizeState(data) {
+  return { ...emptyState(), ...data,
+    settings: { ...emptyState().settings, ...(data.settings || {}) } };
+}
+
+/** Replace all app data with an imported (already-sanitized) state and recalculate derived accomplishments. */
+export function importState(clean) {
+  return setState(recalculate(clean));
 }

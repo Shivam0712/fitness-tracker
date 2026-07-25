@@ -365,3 +365,30 @@ img { display: block; max-width: 100%; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 .cal-empty-hint { text-align: center; color: var(--text-2); font-size: var(--fs-15); padding: var(--sp-6) 0; }
+
+/* ===== ARCHIVED ACTIVITIES (Home) ===== */
+.archived-toggle {
+  display: block; width: 100%; text-align: left; margin-top: var(--sp-6);
+  padding: var(--sp-2) 0; color: var(--text-2); font-size: var(--fs-15); font-weight: 500;
+}
+.archived-list { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
+.archived-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card);
+  padding: var(--sp-3); opacity: 0.75;
+}
+.archived-avatar { width: 40px; height: 40px; border-radius: var(--r-btn); object-fit: cover; flex: 0 0 auto; }
+.archived-name { flex: 1; min-width: 0; font-size: var(--fs-15); font-weight: 600; }
+.archived-restore { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-13); }
+
+/* ===== PAST RUNS (Activity Detail — Progress tab) ===== */
+.past-runs { margin-top: var(--sp-6); }
+.past-runs-h { font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); margin-bottom: var(--sp-3); }
+.past-runs-list { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+.past-run-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--hairline); font-size: var(--fs-15);
+}
+.past-run-row:last-child { border-bottom: none; }
+.past-run-value { font-weight: 600; }
+.past-run-dates { color: var(--text-2); font-size: var(--fs-13); }

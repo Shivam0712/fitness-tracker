@@ -65,9 +65,9 @@ function rerender() {
 
   // wire log rows (edit) if on log seg
   if (_seg === 'log') wireLogRows(a, state);
-  // wire reset button (lives on progress seg) regardless
-  const resetBtn = panelEl.querySelector('#reset-btn');
-  if (resetBtn) resetBtn.onclick = () => { _cb.onResetCommitment(a.id); setTimeout(rerender, 50); };
+  // wire archive-progress button (lives on progress seg) regardless
+  const archiveBtn = panelEl.querySelector('#reset-btn');
+  if (archiveBtn) archiveBtn.onclick = async () => { await _cb.onArchiveProgress(a.id); rerender(); };
 }
 
 function renderSeg(a, state) {
@@ -80,10 +80,12 @@ function renderSeg(a, state) {
 function renderProgress(a, state) {
   const { total, distinctDays, commitment: c } = commitmentProgress(a, state.logs);
   const unit = esc(a.unit);
-  if (!c) return `<div class="detail-empty">No active commitment.</div>`;
+  const pastRuns = renderPastRuns(a);
+  if (!c) return `<div class="detail-empty">No active commitment.</div>${pastRuns}`;
   if (c.type === 'open')
     return `<div class="detail-hero"><span class="detail-hero-num">${total}</span><span class="detail-hero-unit">${unit}</span></div>
-            <p class="detail-sub">Open commitment — keep going.</p>`;
+            <p class="detail-sub">Open commitment — keep going.</p>
+            <button class="btn btn--ghost" id="reset-btn" style="margin-top:24px;width:100%">Archive progress</button>${pastRuns}`;
 
   const start = new Date(c.startedAt); start.setHours(0,0,0,0);
   const today = new Date(); today.setHours(0,0,0,0);
@@ -104,7 +106,31 @@ function renderProgress(a, state) {
     <div class="tile-bar" style="margin:16px 0"><div class="tile-bar-fill" style="width:${pct}%;background:${a.color}"></div></div>
     <p class="detail-line">${esc(line)}</p>
     <p class="detail-sub">Day ${elapsed}${rem?` · ${esc(rem)}`:''}</p>
-    <button class="btn btn--ghost" id="reset-btn" style="margin-top:24px;width:100%">Reset commitment</button>`;
+    <button class="btn btn--ghost" id="reset-btn" style="margin-top:24px;width:100%">Archive progress</button>${pastRuns}`;
+}
+
+/** Browsable history of archived commitment runs for this activity, most recent first. */
+function renderPastRuns(a) {
+  const runs = a.archivedCommitments || [];
+  if (runs.length === 0) return '';
+  const rows = [...runs].reverse().map(r => {
+    const target = r.targetCount != null ? ` / ${r.targetCount}` : '';
+    const valueLine = r.achievedTotal != null
+      ? `${r.achievedTotal}${target} ${esc(a.unit)}`
+      : (r.type ? esc(r.type) : 'Archived run');
+    const startDate = r.startedAt ? new Date(r.startedAt).toLocaleDateString() : '—';
+    const endTs = r.archivedAt || r.completedAt;
+    const endDate = endTs ? new Date(endTs).toLocaleDateString() : '—';
+    return `<div class="past-run-row">
+      <span class="past-run-value">${valueLine}</span>
+      <span class="past-run-dates">${startDate} → ${endDate}</span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="past-runs">
+      <h3 class="past-runs-h">Past runs</h3>
+      <div class="past-runs-list">${rows}</div>
+    </div>`;
 }
 
 /* ---------- Streak sub-view ---------- */
@@ -219,11 +245,14 @@ function openKebab(a) {
   node.innerHTML = `
     <button class="btn btn--ghost" id="k-edit">Edit activity</button>
     ${a.commitment ? '' : `<button class="btn btn--ghost" id="k-commit">Set new commitment</button>`}
+    <button class="btn btn--ghost" id="k-archive">Archive activity</button>
     <button class="btn btn--danger" id="k-del">Delete activity</button>`;
-  const { close } = showModal(node, { title: a.name });
-  node.querySelector('#k-edit').onclick = () => { close(); openEditActivity(a); };
-  const kc = node.querySelector('#k-commit'); if (kc) kc.onclick = () => { close(); openSetCommitment(a); };
-  node.querySelector('#k-del').onclick = async () => { close(); await _cb.onDeleteActivity(a.id); close(); };
+  const { close: closeKebab } = showModal(node, { title: a.name });
+  node.querySelector('#k-edit').onclick = () => { closeKebab(); openEditActivity(a); };
+  const kc = node.querySelector('#k-commit'); if (kc) kc.onclick = () => { closeKebab(); openSetCommitment(a); };
+  // close() here (no args) is the outer detail-panel close — only dismiss the panel if the action was actually confirmed.
+  node.querySelector('#k-archive').onclick = async () => { closeKebab(); if (await _cb.onArchiveActivity(a.id)) close(); };
+  node.querySelector('#k-del').onclick = async () => { closeKebab(); if (await _cb.onDeleteActivity(a.id)) close(); };
 }
 
 function openEditActivity(a) {
