@@ -1,5 +1,5 @@
 // modules/views/accomplishments.js
-import { esc } from '../ui.js';
+import { esc, fmtNum } from '../ui.js';
 
 export function render(container, state, callbacks) {
   const actName = id => {
@@ -35,9 +35,9 @@ export function render(container, state, callbacks) {
       <button class="acc-gear" id="acc-settings" aria-label="Settings">⚙</button>
     </header>
     ${section('Longest Streak', longest, a => row(a, `${a.value} days`))}
-    ${section('Daily Max', daily, a => row(a, `${a.value} ${actName(a.activityId).unit}`))}
-    ${section('Targets Achieved', targets, a => row(a, `${a.value} · ${new Date(a.achievedAt).toLocaleDateString()}`))}
-    ${section('Overall Max (per activity)', overall, a => row(a, `${a.value} ${actName(a.activityId).unit}`))}`;
+    ${section('Daily Max', daily, a => row(a, `${fmtNum(a.value)} ${actName(a.activityId).unit}`))}
+    ${section('Targets Achieved', targets, a => row(a, `${fmtNum(a.value)} · ${new Date(a.achievedAt).toLocaleDateString()}`))}
+    ${section('Overall Max (per activity)', overall, a => row(a, `${fmtNum(a.value)} ${actName(a.activityId).unit}`))}`;
 
   const gear = container.querySelector('#acc-settings');
   gear.onclick = () => { if (window.__app?.openSettings) window.__app.openSettings(); };

@@ -117,6 +117,12 @@ export function showModal(contentNode, { title } = {}) {
   return { close, card };
 }
 
+/* ---------- number formatter: round to 2dp, trim trailing zeros (kills float noise like 8.000000000000002) ---------- */
+export function fmtNum(n) {
+  const r = Math.round(Number(n) * 100) / 100;
+  return String(r);
+}
+
 /* ---------- tiny HTML escaper (use for any user text in innerHTML) ---------- */
 export function esc(s) {
   return String(s == null ? '' : s)

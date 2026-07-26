@@ -1,7 +1,7 @@
 // modules/views/home.js
 import { openNumberPad } from '../numberPad.js';
 import { renderFallbackAvatar } from '../thumbnail.js';
-import { esc } from '../ui.js';
+import { esc, fmtNum } from '../ui.js';
 
 /** Sum of counts for the active commitment window (or all-time if no commitment). */
 export function commitmentProgress(activity, logs) {
@@ -44,30 +44,30 @@ function progressMarkup(activity, logs) {
   const { total, distinctDays: dd, commitment: c } = commitmentProgress(activity, logs);
   const unit = esc(activity.unit);
   if (!c) {
-    return `<div class="tile-progress-line"><span class="tile-big">${total}</span> <span class="tile-unit">${unit}</span>
+    return `<div class="tile-progress-line"><span class="tile-big">${fmtNum(total)}</span> <span class="tile-unit">${unit}</span>
             <span class="tile-sub">no active commitment</span></div>`;
   }
   if (c.type === 'open') {
-    return `<div class="tile-progress-line"><span class="tile-big">${total}</span> <span class="tile-unit">${unit}</span></div>`;
+    return `<div class="tile-progress-line"><span class="tile-big">${fmtNum(total)}</span> <span class="tile-unit">${unit}</span></div>`;
   }
   if (c.type === 'x_only') {
     const pct = Math.min(100, Math.round(total / c.targetCount * 100));
-    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit}`);
+    return bar(activity.color, pct, `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit}`);
   }
   if (c.type === 'x_in_y') {
     const pct = Math.min(100, Math.round(total / c.targetCount * 100));
     const remaining = Math.max(0, c.targetDays - daysElapsed(c.startedAt) + 1);
-    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit} · ${remaining}d left`);
+    return bar(activity.color, pct, `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit} · ${remaining}d left`);
   }
   if (c.type === 'y_days') {
     const el = Math.min(c.targetDays, daysElapsed(c.startedAt));
     const pct = Math.min(100, Math.round(dd / c.targetDays * 100));
-    return bar(activity.color, pct, `${dd} / ${c.targetDays} days · ${total} ${unit} total`);
+    return bar(activity.color, pct, `${dd} / ${c.targetDays} days · ${fmtNum(total)} ${unit} total`);
   }
   if (c.type === 'x_before_z') {
     const pct = Math.min(100, Math.round(total / c.targetCount * 100));
     const remaining = daysUntil(c.targetDate);
-    return bar(activity.color, pct, `${total} / ${c.targetCount} ${unit} · ${remaining}d left`);
+    return bar(activity.color, pct, `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit} · ${remaining}d left`);
   }
   return '';
 }

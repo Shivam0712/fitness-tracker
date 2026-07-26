@@ -1,5 +1,5 @@
 // modules/views/calendar.js
-import { esc, showModal } from '../ui.js';
+import { esc, fmtNum, showModal } from '../ui.js';
 
 let _month = null; // Date anchored to first of displayed month
 
@@ -65,7 +65,7 @@ function openDayModal(y, m, d, entries) {
         <div class="day-row">
           <span class="cal-dot" style="background:${e.color}"></span>
           <span class="day-name ${e.deleted?'is-deleted':''}">${esc(e.name)}</span>
-          <span class="day-count">${e.count}</span>
+          <span class="day-count">${fmtNum(e.count)}</span>
         </div>`).join('')}</div>`;
   showModal(node, { title: date.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}) });
 }

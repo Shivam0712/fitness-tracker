@@ -1,5 +1,5 @@
 // modules/views/activityDetail.js
-import { esc, showConfirm, showModal, showToast } from '../ui.js';
+import { esc, fmtNum, showConfirm, showModal, showToast } from '../ui.js';
 import { calcStreakStats, localDayKey } from '../streak.js';
 import { commitmentProgress, daysUntil } from './home.js';
 import { openNumberPad } from '../numberPad.js';
@@ -83,7 +83,7 @@ function renderProgress(a, state) {
   const pastRuns = renderPastRuns(a);
   if (!c) return `<div class="detail-empty">No active commitment.</div>${pastRuns}`;
   if (c.type === 'open')
-    return `<div class="detail-hero"><span class="detail-hero-num">${total}</span><span class="detail-hero-unit">${unit}</span></div>
+    return `<div class="detail-hero"><span class="detail-hero-num">${fmtNum(total)}</span><span class="detail-hero-unit">${unit}</span></div>
             <p class="detail-sub">Open commitment — keep going.</p>
             <button class="btn btn--ghost" id="reset-btn" style="margin-top:24px;width:100%">Archive progress</button>${pastRuns}`;
 
@@ -92,14 +92,14 @@ function renderProgress(a, state) {
   const elapsed = Math.round((today - start)/86400000) + 1;
 
   let pct, line, rem = '';
-  if (c.type === 'x_only') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`; }
-  else if (c.type === 'x_in_y') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
+  if (c.type === 'x_only') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit}`; }
+  else if (c.type === 'x_in_y') { pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit}`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
   else if (c.type === 'x_before_z') {
-    pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${total} / ${c.targetCount} ${unit}`;
+    pct = Math.min(100, Math.round(total/c.targetCount*100)); line = `${fmtNum(total)} / ${fmtNum(c.targetCount)} ${unit}`;
     const due = new Date(c.targetDate + 'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     rem = `due ${due} · ${daysUntil(c.targetDate)}d left`;
   }
-  else /* y_days */ { pct = Math.min(100, Math.round(distinctDays/c.targetDays*100)); line = `${distinctDays} / ${c.targetDays} days · ${total} ${unit} total`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
+  else /* y_days */ { pct = Math.min(100, Math.round(distinctDays/c.targetDays*100)); line = `${distinctDays} / ${c.targetDays} days · ${fmtNum(total)} ${unit} total`; rem = `${Math.max(0,c.targetDays-elapsed+1)} days remaining`; }
 
   return `
     <div class="detail-hero"><span class="detail-hero-num">${pct}</span><span class="detail-hero-unit">%</span></div>
@@ -114,9 +114,9 @@ function renderPastRuns(a) {
   const runs = a.archivedCommitments || [];
   if (runs.length === 0) return '';
   const rows = [...runs].reverse().map(r => {
-    const target = r.targetCount != null ? ` / ${r.targetCount}` : '';
+    const target = r.targetCount != null ? ` / ${fmtNum(r.targetCount)}` : '';
     const valueLine = r.achievedTotal != null
-      ? `${r.achievedTotal}${target} ${esc(a.unit)}`
+      ? `${fmtNum(r.achievedTotal)}${target} ${esc(a.unit)}`
       : (r.type ? esc(r.type) : 'Archived run');
     const startDate = r.startedAt ? new Date(r.startedAt).toLocaleDateString() : '—';
     const endTs = r.archivedAt || r.completedAt;
@@ -191,8 +191,8 @@ function renderLog(a, state) {
     return `<button class="log-row" data-log="${l.id}">
       <span class="log-date">${d.toLocaleDateString()}</span>
       <span class="log-time">${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-      <span class="log-count">${l.count} ${esc(a.unit)}</span>
-      <span class="log-cum">${cumv==null?'—':`Σ ${cumv}`}</span>
+      <span class="log-count">${fmtNum(l.count)} ${esc(a.unit)}</span>
+      <span class="log-cum">${cumv==null?'—':`Σ ${fmtNum(cumv)}`}</span>
     </button>`;
   }).join('');
   return `<div class="log-table">${rows}</div>`;
@@ -213,7 +213,7 @@ function openEditLog(logId, a) {
   const node = document.createElement('div'); node.className = 'form';
   node.innerHTML = `
     <label class="field"><span class="field-label">Count (${esc(a.unit)})</span>
-      <input class="field-input" id="e-count" inputmode="numeric" value="${l.count}"></label>
+      <input class="field-input" id="e-count" inputmode="decimal" value="${l.count}"></label>
     <label class="field"><span class="field-label">Date</span>
       <input class="field-input" id="e-date" type="date" value="${dateVal}"></label>
     <label class="field"><span class="field-label">Time</span>
@@ -226,7 +226,7 @@ function openEditLog(logId, a) {
   node.querySelector('#e-save').onclick = () => {
     const count = Number(node.querySelector('#e-count').value);
     const dv = node.querySelector('#e-date').value, tv = node.querySelector('#e-time').value;
-    if (!(count >= 1)) { showToast('Count must be ≥ 1', {type:'error'}); return; }
+    if (!(count > 0)) { showToast('Count must be greater than 0', {type:'error'}); return; }
     const nd = new Date(`${dv}T${tv||'00:00'}`);
     const off = -nd.getTimezoneOffset(); const sign = off>=0?'+':'-';
     const oh = String(Math.floor(Math.abs(off)/60)).padStart(2,'0'); const om = String(Math.abs(off)%60).padStart(2,'0');
@@ -298,7 +298,7 @@ function openSetCommitment(a) {
       <button type="button" data-t="y_days"     class="seg-btn">Y days</button>
       <button type="button" data-t="open"       class="seg-btn">Open</button>
     </div>
-    <label class="field" id="sc-wc"><span class="field-label">Target count</span><input class="field-input" id="sc-count" inputmode="numeric"></label>
+    <label class="field" id="sc-wc"><span class="field-label">Target count</span><input class="field-input" id="sc-count" inputmode="decimal"></label>
     <label class="field" id="sc-wd"><span class="field-label">Target days</span><input class="field-input" id="sc-days" inputmode="numeric"></label>
     <label class="field" id="sc-wz"><span class="field-label">Target date</span><input class="field-input" id="sc-date" type="date"></label>
     <button class="btn btn--primary" id="sc-save">Set commitment</button>`;

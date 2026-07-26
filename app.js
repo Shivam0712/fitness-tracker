@@ -166,7 +166,7 @@ function openCreateActivity() {
       </div>
     </div>
     <label class="field" id="wrap-count"><span class="field-label">Target count</span>
-      <input class="field-input" id="f-count" inputmode="numeric" placeholder="200"></label>
+      <input class="field-input" id="f-count" inputmode="decimal" placeholder="200"></label>
     <label class="field" id="wrap-days"><span class="field-label">Target days</span>
       <input class="field-input" id="f-days" inputmode="numeric" placeholder="20"></label>
     <label class="field" id="wrap-date"><span class="field-label">Target date</span>

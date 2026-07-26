@@ -32,7 +32,10 @@ export function recalculate(state) {
       const k = localDayKey(l.timestamp);
       perDay.set(k, (perDay.get(k) || 0) + Number(l.count));
     }
-    const dailyMax = Math.max(...perDay.values());
+    // round per-day sums before comparing — decimal accumulation (e.g. 5.7 + 2.3) can land on
+    // 8.000000000000002, which would spuriously edge out a genuine equal-value day.
+    const round2 = n => Math.round(n * 100) / 100;
+    const dailyMax = Math.max(...[...perDay.values()].map(round2));
     derived.push({
       id: `derived_dailymax_${act.id}`, type: 'daily_max',
       activityId: act.id, value: dailyMax, achievedAt: null, meta: {},

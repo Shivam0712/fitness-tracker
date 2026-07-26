@@ -1,5 +1,5 @@
 // modules/views/rawLog.js
-import { esc, showModal, showToast } from '../ui.js';
+import { esc, fmtNum, showModal, showToast } from '../ui.js';
 
 let _filter = new Set(); // empty = show all
 
@@ -22,7 +22,7 @@ export function render(container, state, callbacks) {
           <td>${d.toLocaleDateString()}<br><span class="rl-time">${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></td>
           <td><span class="cal-dot" style="background:${a?.color||'#999'}"></span>
               <span class="${a?.deleted?'is-deleted':''}">${esc(a?.name||'Unknown')}</span></td>
-          <td class="rl-count">${l.count}</td>
+          <td class="rl-count">${fmtNum(l.count)}</td>
           <td class="rl-unit">${esc(a?.unit||'')}</td>
         </tr>`;
       }).join('');
@@ -51,7 +51,7 @@ function openEdit(logId, state, callbacks) {
   const timeVal = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   const node = document.createElement('div'); node.className = 'form';
   node.innerHTML = `
-    <label class="field"><span class="field-label">Count (${esc(a?.unit||'')})</span><input class="field-input" id="r-count" inputmode="numeric" value="${l.count}"></label>
+    <label class="field"><span class="field-label">Count (${esc(a?.unit||'')})</span><input class="field-input" id="r-count" inputmode="decimal" value="${l.count}"></label>
     <label class="field"><span class="field-label">Date</span><input class="field-input" id="r-date" type="date" value="${dateVal}"></label>
     <label class="field"><span class="field-label">Time</span><input class="field-input" id="r-time" type="time" value="${timeVal}"></label>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -61,7 +61,7 @@ function openEdit(logId, state, callbacks) {
   const { close } = showModal(node, { title: 'Edit entry' });
   node.querySelector('#r-save').onclick = () => {
     const count = Number(node.querySelector('#r-count').value);
-    if (!(count >= 1)) { showToast('Count must be ≥ 1', {type:'error'}); return; }
+    if (!(count > 0)) { showToast('Count must be greater than 0', {type:'error'}); return; }
     const dv = node.querySelector('#r-date').value, tv = node.querySelector('#r-time').value;
     const nd = new Date(`${dv}T${tv||'00:00'}`);
     const off = -nd.getTimezoneOffset(); const sign = off>=0?'+':'-';
