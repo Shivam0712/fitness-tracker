@@ -1,7 +1,7 @@
 {
-  "name": "Fitness Tracker",
-  "short_name": "Fitness",
-  "description": "Personal fitness tracker — activities, streaks, commitments.",
+  "name": "Discipline",
+  "short_name": "Discipline",
+  "description": "Personal discipline tracker — activities, streaks, commitments.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
