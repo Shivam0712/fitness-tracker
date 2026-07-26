@@ -10,8 +10,9 @@ export function recalculate(state) {
   const next = { ...state };
   const logs = state.logs || [];
 
-  // 1. keep durable target_achieved records as-is
-  const durable = (state.accomplishments || []).filter(a => a.type === 'target_achieved');
+  // 1. keep durable event-based records as-is (both are wins, not recomputed from logs)
+  const durable = (state.accomplishments || []).filter(
+    a => a.type === 'target_achieved' || a.type === 'spotlight_target_achieved');
 
   const derived = [];
 
@@ -76,6 +77,26 @@ export function shouldFireTarget(state, activity) {
     a => a.type === 'target_achieved' &&
          a.activityId === activity.id &&
          a.meta && a.meta.commitmentStartedAt === c.startedAt
+  );
+  return !already;
+}
+
+/**
+ * Should a Spotlight entry's sub-target fire a win right now?
+ * Mirrors shouldFireTarget: an 'open' target has no measurable goal and never
+ * fires; a 'y_days' target is met by distinct logged days, everything else by
+ * summed count. Guarded against duplicates by entry.id (stable per spotlight run).
+ */
+export function shouldFireSpotlightTarget(state, entry) {
+  const t = entry.target;
+  if (t.type === 'open') return false;
+  const logs = state.logs.filter(l => l.activityId === entry.activityId && new Date(l.timestamp) >= new Date(entry.addedAt));
+  const met = t.type === 'y_days'
+    ? (t.targetDays != null && new Set(logs.map(l => localDayKey(l.timestamp))).size >= t.targetDays)
+    : (t.targetCount != null && logs.reduce((sum, l) => sum + Number(l.count), 0) >= t.targetCount);
+  if (!met) return false;
+  const already = (state.accomplishments || []).some(
+    a => a.type === 'spotlight_target_achieved' && a.meta && a.meta.spotlightEntryId === entry.id
   );
   return !already;
 }

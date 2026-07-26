@@ -1,27 +1,35 @@
 // app.js — entry point
 import * as store from './modules/store.js';
-import { recalculate, shouldFireTarget } from './modules/accomplishments.js';
+import { recalculate, shouldFireTarget, shouldFireSpotlightTarget } from './modules/accomplishments.js';
 import { celebrate } from './modules/confetti.js';
 import { showToast, showModal, showConfirm, esc, haptic } from './modules/ui.js';
 import { resizeImage } from './modules/thumbnail.js';
 import { syncNow } from './modules/sync.js';
+import { commitmentFieldsMarkup, wireCommitmentFields, validateCommitmentFields } from './modules/commitmentFields.js';
 
 /* view modules (lazy) */
 import * as homeView from './modules/views/home.js';
-let calendarView, accomplishmentsView, rawLogView, activityDetailView; // loaded on demand
+let spotlightView, calendarView, historyView, activityDetailView; // loaded on demand
 
 /* ---------- canonical in-memory state ---------- */
 let state = store.getState();
+state = store.expireSpotlight(state);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const next = store.expireSpotlight(state);
+  if (next !== state) { state = next; refresh(); }
+});
 
 /* ---------- routing ---------- */
-const VIEWS = ['home', 'calendar', 'accomplishments', 'rawlog'];
-let currentView = 'home';
+const VIEWS = ['spotlight', 'home', 'calendar', 'history'];
+let currentView = 'spotlight';
 
 const viewEls = {
-  home:            document.getElementById('view-home'),
-  calendar:        document.getElementById('view-calendar'),
-  accomplishments: document.getElementById('view-accomplishments'),
-  rawlog:          document.getElementById('view-rawlog'),
+  spotlight: document.getElementById('view-spotlight'),
+  home:      document.getElementById('view-home'),
+  calendar:  document.getElementById('view-calendar'),
+  history:   document.getElementById('view-history'),
 };
 
 function setView(name) {
@@ -39,15 +47,27 @@ document.querySelectorAll('.nav-btn').forEach(btn =>
 const callbacks = {
   onLog: (activityId, count) => {
     state = store.addLog(state, activityId, count);
-    // target check (x_in_y / x_only)
     const act = store.getActivity(state, activityId);
+
+    // spotlight sub-targets check first — independent of, and can coexist with, the parent commitment target
+    let spotlightHit = false;
+    for (const entry of state.spotlight.active.filter(e => e.activityId === activityId)) {
+      if (!shouldFireSpotlightTarget(state, entry)) continue;
+      const { achieved } = store.spotlightProgress(state, entry);
+      state = store.addSpotlightTargetAchieved(state, activityId, achieved, { spotlightEntryId: entry.id, category: entry.category });
+      spotlightHit = true;
+    }
+
     if (act && shouldFireTarget(state, act)) {
       const c = act.commitment;
       state = store.addTargetAchieved(state, activityId, c.targetCount, {
         commitmentStartedAt: c.startedAt, targetDays: c.targetDays,
       });
       celebrate(act.color);
-      showTargetModal(act);
+      showTargetModal(act); // the bigger milestone wins the modal when both fire on the same log
+    } else if (spotlightHit) {
+      celebrate(act.color);
+      showToast('Spotlight target hit ✓', { type: 'success' });
     } else {
       haptic('success');
       showToast('Logged ✓', { type: 'success' });
@@ -97,23 +117,38 @@ const callbacks = {
   },
   onSetCommitment: (activityId, cfg) => { state = store.setCommitment(state, activityId, cfg); refresh(); },
   onEditActivity: (activityId, patch) => { state = store.editActivity(state, activityId, patch); refresh(); },
+  onAddToSpotlight: (activityId, category, target) => {
+    const act = store.getActivity(state, activityId);
+    if (act && !act.category) state = store.editActivity(state, activityId, { category });
+    const before = state;
+    state = store.addToSpotlight(state, activityId, category, target);
+    if (state === before) {
+      const label = category === 'mental' ? 'Mental' : 'Physical';
+      showToast(`${label} spotlight is full (${store.SPOTLIGHT_CAPS[category]} max)`, { type: 'error' });
+      return;
+    }
+    refresh(); showToast('Added to spotlight ✓', { type: 'success' });
+  },
+  onRemoveFromSpotlight: (entryId) => {
+    state = store.removeFromSpotlight(state, entryId); refresh(); showToast('Removed from spotlight');
+  },
   getState: () => state,
 };
 
 /* ---------- central refresh ---------- */
 async function refresh() {
   applyTheme();
-  if (currentView === 'home') {
+  if (currentView === 'spotlight') {
+    spotlightView = spotlightView || await import('./modules/views/spotlight.js');
+    spotlightView.render(viewEls.spotlight, state, callbacks);
+  } else if (currentView === 'home') {
     homeView.render(viewEls.home, state, callbacks);
   } else if (currentView === 'calendar') {
     calendarView = calendarView || await import('./modules/views/calendar.js');
     calendarView.render(viewEls.calendar, state, callbacks);
-  } else if (currentView === 'accomplishments') {
-    accomplishmentsView = accomplishmentsView || await import('./modules/views/accomplishments.js');
-    accomplishmentsView.render(viewEls.accomplishments, state, callbacks);
-  } else if (currentView === 'rawlog') {
-    rawLogView = rawLogView || await import('./modules/views/rawLog.js');
-    rawLogView.render(viewEls.rawlog, state, callbacks);
+  } else if (currentView === 'history') {
+    historyView = historyView || await import('./modules/views/history.js');
+    historyView.render(viewEls.history, state, callbacks);
   }
 }
 
@@ -156,21 +191,13 @@ function openCreateActivity() {
       <input class="field-input" id="f-name" placeholder="e.g. Pushups" autocomplete="off"></label>
     <label class="field"><span class="field-label">Unit</span>
       <input class="field-input" id="f-unit" placeholder="reps, min, km" autocomplete="off"></label>
-    <div class="field"><span class="field-label">Commitment type</span>
-      <div class="seg" id="f-type">
-        <button type="button" data-t="x_in_y"     class="seg-btn is-active">X in Y days</button>
-        <button type="button" data-t="x_only"     class="seg-btn">X reps</button>
-        <button type="button" data-t="x_before_z" class="seg-btn">X by Date</button>
-        <button type="button" data-t="y_days"     class="seg-btn">Y days</button>
-        <button type="button" data-t="open"       class="seg-btn">Open</button>
+    <div class="field"><span class="field-label">Category</span>
+      <div class="seg" id="f-category">
+        <button type="button" data-c="physical" class="seg-btn is-active">Physical</button>
+        <button type="button" data-c="mental"   class="seg-btn">Mental</button>
       </div>
     </div>
-    <label class="field" id="wrap-count"><span class="field-label">Target count</span>
-      <input class="field-input" id="f-count" inputmode="decimal" placeholder="200"></label>
-    <label class="field" id="wrap-days"><span class="field-label">Target days</span>
-      <input class="field-input" id="f-days" inputmode="numeric" placeholder="20"></label>
-    <label class="field" id="wrap-date"><span class="field-label">Target date</span>
-      <input class="field-input" id="f-date" type="date"></label>
+    ${commitmentFieldsMarkup('f')}
     <label class="field"><span class="field-label">Streak minimum (optional)</span>
       <input class="field-input" id="f-min" inputmode="numeric" placeholder="0"></label>
     <div class="field"><span class="field-label">Thumbnail (optional)</span>
@@ -180,20 +207,13 @@ function openCreateActivity() {
 
   const { close } = showModal(node, { title: 'New activity' });
 
-  let type = 'x_in_y';
-  const wrapCount = node.querySelector('#wrap-count');
-  const wrapDays  = node.querySelector('#wrap-days');
-  const wrapDate  = node.querySelector('#wrap-date');
-  function syncFields() {
-    wrapCount.classList.toggle('hidden', !(type === 'x_in_y' || type === 'x_only' || type === 'x_before_z'));
-    wrapDays.classList.toggle('hidden',  !(type === 'x_in_y' || type === 'y_days'));
-    wrapDate.classList.toggle('hidden',  type !== 'x_before_z');
-  }
-  node.querySelectorAll('#f-type .seg-btn').forEach(b => b.onclick = () => {
-    node.querySelectorAll('#f-type .seg-btn').forEach(x => x.classList.remove('is-active'));
-    b.classList.add('is-active'); type = b.dataset.t; syncFields();
+  const commitmentFields = wireCommitmentFields(node, 'f', { initialType: 'x_in_y' });
+
+  let category = 'physical';
+  node.querySelectorAll('#f-category .seg-btn').forEach(b => b.onclick = () => {
+    node.querySelectorAll('#f-category .seg-btn').forEach(x => x.classList.remove('is-active'));
+    b.classList.add('is-active'); category = b.dataset.c;
   });
-  syncFields();
 
   node.querySelector('#f-img').onchange = async (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -207,17 +227,15 @@ function openCreateActivity() {
   node.querySelector('#f-save').onclick = async () => {
     const name = node.querySelector('#f-name').value.trim();
     if (!name) { showToast('Name required', { type: 'error' }); return; }
+    const target = commitmentFields.getValues();
+    const err = validateCommitmentFields(target);
+    if (err) { showToast(err, { type: 'error' }); return; }
     const cfg = {
-      name, unit: node.querySelector('#f-unit').value.trim(), type,
-      targetCount: node.querySelector('#f-count').value,
-      targetDays: node.querySelector('#f-days').value,
-      targetDate: node.querySelector('#f-date').value || null,
+      name, unit: node.querySelector('#f-unit').value.trim(), category,
+      ...target,
       streakMinimum: node.querySelector('#f-min').value,
       thumbnail,
     };
-    if ((type === 'x_in_y' || type === 'x_only' || type === 'x_before_z') && !(Number(cfg.targetCount) > 0)) { showToast('Target count required', { type:'error' }); return; }
-    if ((type === 'x_in_y' || type === 'y_days') && !(Number(cfg.targetDays) > 0)) { showToast('Target days required', { type:'error' }); return; }
-    if (type === 'x_before_z' && !cfg.targetDate) { showToast('Target date required', { type:'error' }); return; }
     state = store.createActivity(state, cfg);
     close(); setView('home'); showToast('Activity created ✓', { type: 'success' });
   };
@@ -381,7 +399,7 @@ function openImportModal() {
 
 /* ---------- boot ---------- */
 applyTheme();
-setView('home');
+setView('spotlight');
 
 /* dev seed hook (TASK 17 fills this) */
 if (new URLSearchParams(location.search).get('debug') === '1') {

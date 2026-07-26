@@ -21,25 +21,25 @@
   <div id="app">
     <!-- View containers. Home visible by default; others hidden. -->
     <main id="view-root">
-      <section id="view-home"            class="view"></section>
-      <section id="view-calendar"        class="view hidden"></section>
-      <section id="view-accomplishments" class="view hidden"></section>
-      <section id="view-rawlog"          class="view hidden"></section>
+      <section id="view-spotlight" class="view"></section>
+      <section id="view-home"      class="view hidden"></section>
+      <section id="view-calendar"  class="view hidden"></section>
+      <section id="view-history"   class="view hidden"></section>
     </main>
 
     <!-- ===== Bottom navigation ===== -->
     <nav id="bottom-nav" aria-label="Primary">
-      <button class="nav-btn is-active" data-view="home" aria-label="Home">
+      <button class="nav-btn is-active" data-view="spotlight" aria-label="Spotlight">
+        <span class="nav-icon">◎</span><span class="nav-label">Spotlight</span>
+      </button>
+      <button class="nav-btn" data-view="home" aria-label="Home">
         <span class="nav-icon">⌂</span><span class="nav-label">Home</span>
       </button>
       <button class="nav-btn" data-view="calendar" aria-label="Calendar">
         <span class="nav-icon">▦</span><span class="nav-label">Calendar</span>
       </button>
-      <button class="nav-btn" data-view="accomplishments" aria-label="Wins">
-        <span class="nav-icon">★</span><span class="nav-label">Wins</span>
-      </button>
-      <button class="nav-btn" data-view="rawlog" aria-label="Log">
-        <span class="nav-icon">≣</span><span class="nav-label">Log</span>
+      <button class="nav-btn" data-view="history" aria-label="History">
+        <span class="nav-icon">≣</span><span class="nav-label">History</span>
       </button>
     </nav>
   </div>

@@ -4,6 +4,7 @@ import { calcStreakStats, localDayKey } from '../streak.js';
 import { commitmentProgress, daysUntil } from './home.js';
 import { openNumberPad } from '../numberPad.js';
 import { resizeImage } from '../thumbnail.js';
+import { commitmentFieldsMarkup, wireCommitmentFields, validateCommitmentFields } from '../commitmentFields.js';
 
 let panelEl = null;
 let backdropEl = null;
@@ -262,12 +263,23 @@ function openEditActivity(a) {
   node.innerHTML = `
     <label class="field"><span class="field-label">Name</span><input class="field-input" id="ea-name" value="${esc(a.name)}"></label>
     <label class="field"><span class="field-label">Unit</span><input class="field-input" id="ea-unit" value="${esc(a.unit)}"></label>
+    <div class="field"><span class="field-label">Category</span>
+      <div class="seg" id="ea-category">
+        <button type="button" data-c="physical" class="seg-btn ${a.category!=='mental'?'is-active':''}">Physical</button>
+        <button type="button" data-c="mental"   class="seg-btn ${a.category==='mental'?'is-active':''}">Mental</button>
+      </div>
+    </div>
     <label class="field"><span class="field-label">Streak minimum</span><input class="field-input" id="ea-min" inputmode="numeric" value="${a.streakMinimum||0}"></label>
     <div class="field"><span class="field-label">Thumbnail</span>
       <input type="file" accept="image/*" id="ea-img" class="field-file">
       <img id="ea-preview" class="form-preview ${hasThumb?'':'hidden'}" src="${hasThumb?esc(a.thumbnail):''}" alt="" referrerpolicy="no-referrer"></div>
     <button class="btn btn--primary" id="ea-save">Save</button>`;
   const { close } = showModal(node, { title: 'Edit activity' });
+  let category = a.category === 'mental' ? 'mental' : 'physical';
+  node.querySelectorAll('#ea-category .seg-btn').forEach(b => b.onclick = () => {
+    node.querySelectorAll('#ea-category .seg-btn').forEach(x => x.classList.remove('is-active'));
+    b.classList.add('is-active'); category = b.dataset.c;
+  });
   node.querySelector('#ea-img').onchange = async (e) => {
     const file = e.target.files[0]; if (!file) return;
     try {
@@ -281,6 +293,7 @@ function openEditActivity(a) {
       name: node.querySelector('#ea-name').value.trim(),
       unit: node.querySelector('#ea-unit').value.trim(),
       streakMinimum: node.querySelector('#ea-min').value,
+      category,
     };
     if (newThumbnail) patch.thumbnail = newThumbnail;
     _cb.onEditActivity(a.id, patch);
@@ -291,33 +304,15 @@ function openEditActivity(a) {
 function openSetCommitment(a) {
   const node = document.createElement('div'); node.className = 'form';
   node.innerHTML = `
-    <div class="seg" id="sc-type">
-      <button type="button" data-t="x_in_y"     class="seg-btn is-active">X in Y</button>
-      <button type="button" data-t="x_only"     class="seg-btn">X reps</button>
-      <button type="button" data-t="x_before_z" class="seg-btn">X by Date</button>
-      <button type="button" data-t="y_days"     class="seg-btn">Y days</button>
-      <button type="button" data-t="open"       class="seg-btn">Open</button>
-    </div>
-    <label class="field" id="sc-wc"><span class="field-label">Target count</span><input class="field-input" id="sc-count" inputmode="decimal"></label>
-    <label class="field" id="sc-wd"><span class="field-label">Target days</span><input class="field-input" id="sc-days" inputmode="numeric"></label>
-    <label class="field" id="sc-wz"><span class="field-label">Target date</span><input class="field-input" id="sc-date" type="date"></label>
+    ${commitmentFieldsMarkup('sc')}
     <button class="btn btn--primary" id="sc-save">Set commitment</button>`;
   const { close } = showModal(node, { title: 'New commitment' });
-  let type = 'x_in_y';
-  const wc = node.querySelector('#sc-wc'), wd = node.querySelector('#sc-wd'), wz = node.querySelector('#sc-wz');
-  const sync = () => {
-    wc.classList.toggle('hidden', !(type==='x_in_y'||type==='x_only'||type==='x_before_z'));
-    wd.classList.toggle('hidden', !(type==='x_in_y'||type==='y_days'));
-    wz.classList.toggle('hidden', type !== 'x_before_z');
-  };
-  node.querySelectorAll('#sc-type .seg-btn').forEach(b => b.onclick = () => {
-    node.querySelectorAll('#sc-type .seg-btn').forEach(x=>x.classList.remove('is-active')); b.classList.add('is-active'); type=b.dataset.t; sync();
-  });
-  sync();
+  const fields = wireCommitmentFields(node, 'sc', { initialType: 'x_in_y' });
   node.querySelector('#sc-save').onclick = () => {
-    const targetDate = node.querySelector('#sc-date').value || null;
-    if (type === 'x_before_z' && !targetDate) { showToast('Target date required', {type:'error'}); return; }
-    _cb.onSetCommitment(a.id, { type, targetCount: node.querySelector('#sc-count').value, targetDays: node.querySelector('#sc-days').value, targetDate });
+    const target = fields.getValues();
+    const err = validateCommitmentFields(target);
+    if (err) { showToast(err, { type: 'error' }); return; }
+    _cb.onSetCommitment(a.id, target);
     close(); rerender();
   };
 }

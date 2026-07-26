@@ -8,10 +8,11 @@ export function render(container, state, callbacks) {
   };
 
   const acc = state.accomplishments || [];
-  const longest = acc.filter(a => a.type === 'longest_streak').sort((x,y) => y.value - x.value);
-  const daily   = acc.filter(a => a.type === 'daily_max').sort((x,y) => y.value - x.value);
-  const targets = acc.filter(a => a.type === 'target_achieved').sort((x,y) => new Date(y.achievedAt) - new Date(x.achievedAt));
-  const overall = acc.filter(a => a.type === 'overall_max').sort((x,y) => y.value - x.value);
+  const longest   = acc.filter(a => a.type === 'longest_streak').sort((x,y) => y.value - x.value);
+  const daily     = acc.filter(a => a.type === 'daily_max').sort((x,y) => y.value - x.value);
+  const targets   = acc.filter(a => a.type === 'target_achieved').sort((x,y) => new Date(y.achievedAt) - new Date(x.achievedAt));
+  const spotlight = acc.filter(a => a.type === 'spotlight_target_achieved').sort((x,y) => new Date(y.achievedAt) - new Date(x.achievedAt));
+  const overall   = acc.filter(a => a.type === 'overall_max').sort((x,y) => y.value - x.value);
 
   const section = (title, items, fmt) => `
     <section class="acc-section">
@@ -37,6 +38,7 @@ export function render(container, state, callbacks) {
     ${section('Longest Streak', longest, a => row(a, `${a.value} days`))}
     ${section('Daily Max', daily, a => row(a, `${fmtNum(a.value)} ${actName(a.activityId).unit}`))}
     ${section('Targets Achieved', targets, a => row(a, `${fmtNum(a.value)} · ${new Date(a.achievedAt).toLocaleDateString()}`))}
+    ${section('Spotlight Wins', spotlight, a => row(a, `${fmtNum(a.value)} · ${new Date(a.achievedAt).toLocaleDateString()}`))}
     ${section('Overall Max (per activity)', overall, a => row(a, `${fmtNum(a.value)} ${actName(a.activityId).unit}`))}`;
 
   const gear = container.querySelector('#acc-settings');

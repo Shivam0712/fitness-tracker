@@ -381,6 +381,84 @@ img { display: block; max-width: 100%; }
 .archived-name { flex: 1; min-width: 0; font-size: var(--fs-15); font-weight: 600; }
 .archived-restore { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-13); }
 
+/* ===== SPOTLIGHT ===== */
+.spotlight-hint { color: var(--text-2); font-size: var(--fs-15); margin-bottom: var(--sp-4); }
+
+.spotlight-block { margin-bottom: var(--sp-6); }
+.spotlight-block-h {
+  font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-2); margin-bottom: var(--sp-3); display: flex; align-items: center; gap: var(--sp-2);
+}
+.spotlight-block-count { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+.spotlight-slots { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.spotlight-slot--empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-1);
+  width: 100%; min-height: 88px; border-radius: var(--r-card); border: 1px dashed var(--hairline);
+  color: var(--text-2);
+}
+.spotlight-slot-plus { font-size: 22px; line-height: 1; }
+.spotlight-slot-label { font-size: var(--fs-13); font-weight: 500; }
+
+.spotlight-card {
+  display: flex; align-items: center; gap: var(--sp-3);
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-card); padding: var(--sp-4);
+  border-left: 4px solid var(--accent);
+}
+.spotlight-card.is-done { opacity: 0.85; }
+.spotlight-card-main { flex: 1; min-width: 0; display: flex; gap: var(--sp-3); align-items: center; cursor: pointer; }
+.spotlight-avatar { width: 48px; height: 48px; border-radius: var(--r-btn); object-fit: cover; flex: 0 0 auto; }
+.spotlight-card-info { flex: 1; min-width: 0; }
+.spotlight-card-name { font-size: var(--fs-15); font-weight: 600; margin-bottom: 2px; }
+.spotlight-progress-label { font-size: var(--fs-13); color: var(--text-2); margin-top: 2px; }
+.spotlight-card-sub { font-size: var(--fs-13); color: var(--text-2); margin-top: 2px; }
+
+.spotlight-card-actions { display: flex; flex-direction: column; gap: var(--sp-2); flex: 0 0 auto; }
+.spotlight-log, .spotlight-remove {
+  width: 36px; height: 36px; border-radius: var(--r-pill);
+  display: grid; place-items: center; font-size: var(--fs-17); line-height: 1;
+  transition: transform 120ms var(--ease);
+}
+.spotlight-log { background: var(--accent); color: #fff; }
+.spotlight-remove { background: var(--border); color: var(--text-2); font-size: var(--fs-13); }
+.spotlight-log:active, .spotlight-remove:active { transform: scale(0.9); }
+
+.spotlight-past { margin-top: var(--sp-6); }
+.spotlight-past-h {
+  font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-2); margin-bottom: var(--sp-3);
+}
+.spotlight-past-list { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+.spotlight-past-row {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--hairline); font-size: var(--fs-13);
+}
+.spotlight-past-row:last-child { border-bottom: none; }
+.spotlight-past-row.is-unmet { opacity: 0.7; }
+.spotlight-past-name { font-weight: 600; font-size: var(--fs-15); flex: 1 1 auto; min-width: 80px; }
+.spotlight-past-name.is-deleted { font-style: italic; color: var(--text-2); }
+.spotlight-past-val { font-weight: 600; }
+.spotlight-past-dates { color: var(--text-2); width: 100%; }
+
+.spotlight-pick-group { margin-bottom: var(--sp-4); }
+.spotlight-pick-h {
+  font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-2); margin-bottom: var(--sp-2);
+}
+.spotlight-pick-row {
+  display: flex; align-items: center; gap: var(--sp-3); width: 100%;
+  padding: var(--sp-3) var(--sp-2); border-bottom: 1px solid var(--hairline); text-align: left;
+}
+.spotlight-pick-row:last-child { border-bottom: none; }
+.spotlight-pick-row.is-disabled { opacity: 0.4; }
+.spotlight-pick-name { flex: 1; font-size: var(--fs-15); }
+.spotlight-pick-tag { font-size: var(--fs-13); color: var(--text-2); }
+
+/* ===== HISTORY (merged Wins / Log) ===== */
+.history-seg { margin-bottom: var(--sp-4); }
+
 /* ===== PAST RUNS (Activity Detail — Progress tab) ===== */
 .past-runs { margin-top: var(--sp-6); }
 .past-runs-h { font-size: var(--fs-13); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); margin-bottom: var(--sp-3); }
