@@ -115,6 +115,16 @@ const callbacks = {
   onUnarchiveActivity: (activityId) => {
     state = store.unarchiveActivity(state, activityId); refresh(); showToast('Activity restored ✓', { type: 'success' });
   },
+  onReorderActivities: (activityId, targetSlot) => {
+    state = store.reorderActivities(state, activityId, targetSlot);
+    haptic('success'); refresh();
+  },
+  onTogglePin: (activityId) => {
+    state = store.toggleActivityPin(state, activityId);
+    const a = store.getActivity(state, activityId);
+    haptic('light'); refresh();
+    showToast(a && a.pinned ? 'Pinned to position' : 'Unpinned');
+  },
   onSetCommitment: (activityId, cfg) => { state = store.setCommitment(state, activityId, cfg); refresh(); },
   onEditActivity: (activityId, patch) => { state = store.editActivity(state, activityId, patch); refresh(); },
   onAddToSpotlight: (activityId, category, target) => {

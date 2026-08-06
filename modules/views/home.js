@@ -1,7 +1,9 @@
 // modules/views/home.js
 import { openNumberPad } from '../numberPad.js';
 import { renderFallbackAvatar } from '../thumbnail.js';
-import { esc, fmtNum } from '../ui.js';
+import { esc, fmtNum, showToast } from '../ui.js';
+import { resolveHomeOrder } from '../store.js';
+import { attachDragReorder } from '../dragReorder.js';
 
 /** Sum of counts for the active commitment window (or all-time if no commitment). */
 export function commitmentProgress(activity, logs) {
@@ -85,7 +87,7 @@ let _showArchived = false;
  * callbacks: { onLog(activityId, count), onOpenActivity(activityId), onCreate() }
  */
 export function render(container, state, callbacks) {
-  const activities = state.activities.filter(a => !a.deleted && !a.archived);
+  const activities = resolveHomeOrder(state.activities);
   const archived = state.activities.filter(a => !a.deleted && a.archived);
   const archivedSection = archivedSectionMarkup(archived);
 
@@ -124,6 +126,22 @@ export function render(container, state, callbacks) {
         onSave: (count) => callbacks.onLog(a.id, count),
       });
     };
+    tile.querySelector('.tile-pin').onclick = (e) => {
+      e.stopPropagation();
+      callbacks.onTogglePin(a.id);
+    };
+  });
+
+  attachDragReorder(container.querySelector('.tiles'), {
+    itemSelector: '.tile',
+    idAttr: 'data-tile',
+    ignoreSelector: '.tile-log, .tile-pin',
+    isLocked: (id) => {
+      const a = state.activities.find(x => x.id === id);
+      return !!(a && a.pinned);
+    },
+    onLockedAttempt: () => showToast('Unpin to move', { type: 'error' }),
+    onDrop: (id, targetSlot) => callbacks.onReorderActivities(id, targetSlot),
   });
 
   wireArchivedSection(container, state, callbacks);
@@ -166,7 +184,7 @@ function tileMarkup(a, logs) {
     ? `<img class="tile-avatar" src="${a.thumbnail}" alt="">`
     : `<img class="tile-avatar" src="${renderFallbackAvatar(a.name, a.color, 96)}" alt="">`;
   return `
-    <article class="tile" data-tile="${a.id}" style="--accent:${a.color}">
+    <article class="tile${a.pinned ? ' is-pinned' : ''}" data-tile="${a.id}" style="--accent:${a.color}">
       <div class="tile-main">
         ${avatar}
         <div class="tile-info">
@@ -174,6 +192,7 @@ function tileMarkup(a, logs) {
           ${progressMarkup(a, logs)}
         </div>
       </div>
+      <button class="tile-pin${a.pinned ? ' is-pinned' : ''}" aria-label="${a.pinned ? 'Unpin' : 'Pin'} ${esc(a.name)}" aria-pressed="${a.pinned ? 'true' : 'false'}">📌</button>
       <button class="tile-log" aria-label="Log ${esc(a.name)}">＋</button>
     </article>`;
 }

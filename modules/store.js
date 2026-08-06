@@ -24,7 +24,7 @@ export function nowISO() {
 /* ---------- Empty / default state ---------- */
 export function emptyState() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     activities: [],
     logs: [],
     accomplishments: [],
@@ -50,12 +50,25 @@ export function getState() {
   }
 }
 
-/** v1 -> v2: backfill activity.category and the spotlight container. */
 function migrate(state) {
-  if ((state.schemaVersion || 1) >= 2) return state;
+  let s = state;
+  if ((s.schemaVersion || 1) < 2) s = migrateV1toV2(s);
+  if (s.schemaVersion < 3) s = migrateV2toV3(s);
+  return s;
+}
+
+/** v1 -> v2: backfill activity.category and the spotlight container. */
+function migrateV1toV2(state) {
   const s = { ...state, schemaVersion: 2 };
   s.activities = s.activities.map(a => ({ category: null, ...a }));
   s.spotlight = s.spotlight || { active: [], history: [] };
+  return s;
+}
+
+/** v2 -> v3: backfill activity.order (from current array index) and activity.pinned. */
+function migrateV2toV3(state) {
+  const s = { ...state, schemaVersion: 3 };
+  s.activities = s.activities.map((a, i) => ({ order: i, pinned: false, ...a }));
   return s;
 }
 
@@ -99,6 +112,7 @@ function makeCommitment(type, targetCount, targetDays, targetDate) {
 
 export function createActivity(state, { name, unit, type, targetCount, targetDays, targetDate, streakMinimum, thumbnail, category }) {
   const s = clone(state);
+  const visibleCount = s.activities.filter(a => !a.deleted && !a.archived).length;
   const activity = {
     id: uuid(),
     name: String(name).trim(),
@@ -109,6 +123,8 @@ export function createActivity(state, { name, unit, type, targetCount, targetDay
     createdAt: nowISO(),
     deleted: false,
     archived: false,
+    order: visibleCount,
+    pinned: false,
     streakMinimum: Number(streakMinimum) || 0,
     commitment: type === 'open'
       ? makeCommitment('open', null, null, null)
@@ -116,6 +132,7 @@ export function createActivity(state, { name, unit, type, targetCount, targetDay
     archivedCommitments: [],
   };
   s.activities.push(activity);
+  normalizeOrder(s);
   return setState(recalculate(s));
 }
 
@@ -136,6 +153,7 @@ export function deleteActivity(state, id) {
   const a = s.activities.find(x => x.id === id);
   if (!a) return state;
   a.deleted = true;
+  normalizeOrder(s);
   return setState(recalculate(s));
 }
 
@@ -187,6 +205,7 @@ export function archiveActivity(state, id) {
   const a = s.activities.find(x => x.id === id);
   if (!a) return state;
   a.archived = true;
+  normalizeOrder(s);
   return setState(recalculate(s));
 }
 
@@ -196,6 +215,93 @@ export function unarchiveActivity(state, id) {
   const a = s.activities.find(x => x.id === id);
   if (!a) return state;
   a.archived = false;
+  normalizeOrder(s);
+  return setState(recalculate(s));
+}
+
+/* ============================================================
+   HOME ORDERING (drag-to-reorder + pin-to-position)
+   Pinned activities hold their `order` row; unpinned ones fill
+   whatever rows are left, in their own relative order.
+   ============================================================ */
+
+/** Resolve the display order of visible (non-deleted, non-archived) activities. */
+export function resolveHomeOrder(activities) {
+  const visible = activities.filter(a => !a.deleted && !a.archived);
+  const n = visible.length;
+  if (n === 0) return [];
+
+  const byOrder = [...visible].sort((a, b) => {
+    const oa = a.order ?? Infinity, ob = b.order ?? Infinity;
+    if (oa !== ob) return oa - ob;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+
+  const pinned = byOrder.filter(a => a.pinned);
+  const free = byOrder.filter(a => !a.pinned);
+
+  const slots = new Array(n).fill(null);
+  for (const a of pinned) {
+    let i = Math.max(0, Math.min(n - 1, a.order ?? 0));
+    while (slots[i] !== null) i = (i + 1) % n; // deterministic collision resolution
+    slots[i] = a;
+  }
+  let k = 0;
+  for (let i = 0; i < n; i++) if (slots[i] === null) slots[i] = free[k++];
+  return slots;
+}
+
+/** Re-densify `order` (0..n-1) across visible activities per resolveHomeOrder. Mutates in place. */
+function normalizeOrder(s) {
+  resolveHomeOrder(s.activities).forEach((a, i) => { a.order = i; });
+}
+
+/**
+ * Move `draggedId` so it lands at display row `targetSlot`.
+ * No-op if the activity is pinned (pinned tiles must be unpinned before moving).
+ */
+export function reorderActivities(state, draggedId, targetSlot) {
+  const s = clone(state);
+  const dragged = s.activities.find(a => a.id === draggedId);
+  if (!dragged || dragged.pinned) return state;
+
+  const slots = resolveHomeOrder(s.activities);
+  const n = slots.length;
+  const pinnedRows = new Set();
+  slots.forEach((a, i) => { if (a.pinned) pinnedRows.add(i); });
+
+  const freeSeq = slots.filter(a => !a.pinned && a.id !== draggedId);
+  let insertAt = 0;
+  for (let i = 0; i < Math.min(targetSlot, n); i++) if (!pinnedRows.has(i)) insertAt++;
+  insertAt = Math.max(0, Math.min(freeSeq.length, insertAt));
+  freeSeq.splice(insertAt, 0, dragged);
+
+  const result = new Array(n).fill(null);
+  slots.forEach((a, i) => { if (a.pinned) result[i] = a; });
+  let k = 0;
+  for (let i = 0; i < n; i++) if (result[i] === null) result[i] = freeSeq[k++];
+
+  result.forEach((a, i) => { a.order = i; });
+  return setState(recalculate(s));
+}
+
+/**
+ * Toggle an activity's pin. Pinning freezes it at its *current displayed* row;
+ * unpinning frees that row for the unpinned tiles to fill.
+ */
+export function toggleActivityPin(state, id) {
+  const s = clone(state);
+  const a = s.activities.find(x => x.id === id);
+  if (!a || a.deleted || a.archived) return state;
+
+  if (a.pinned) {
+    a.pinned = false;
+  } else {
+    const idx = resolveHomeOrder(s.activities).findIndex(x => x.id === id);
+    a.order = idx;
+    a.pinned = true;
+  }
+  normalizeOrder(s);
   return setState(recalculate(s));
 }
 
